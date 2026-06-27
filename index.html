@@ -68,36 +68,45 @@
     100%{transform:translateY(-10vh) scale(1.2);opacity:0}
   }
 
-  /* ---- Navbar (bigger + premium) ---- */
+  /* ---- Navbar (bigger + premium + sticker accents) ---- */
   nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;
      align-items:center;padding:18px 7vw;backdrop-filter:blur(16px);
      background:rgba(6,8,21,.55);border-bottom:1px solid transparent;transition:.35s}
   nav.scrolled{border-bottom:1px solid var(--stroke);background:rgba(6,8,21,.85);padding:13px 7vw;
     box-shadow:0 8px 30px rgba(0,0,0,.35)}
-  .logo{font-family:'Space Grotesk';font-weight:700;font-size:1.35rem;letter-spacing:.5px;cursor:pointer;
-    position:relative;padding:4px 10px;border-radius:8px;transition:.3s}
-  .logo::before{content:"";position:absolute;inset:0;border-radius:8px;
+  .logo{font-family:'Space Grotesk';font-weight:700;font-size:1.5rem;letter-spacing:.4px;cursor:pointer;
+    position:relative;padding:5px 12px;border-radius:10px;transition:.3s;display:inline-flex;align-items:center;gap:8px}
+  .logo::before{content:"";position:absolute;inset:0;border-radius:10px;
     background:radial-gradient(closest-side,rgba(108,140,255,.22),transparent 70%);
     opacity:0;transition:.3s;z-index:-1}
   .logo:hover::before{opacity:1}
+  .logo .spark{font-size:1.25rem;display:inline-block;animation:sparkSpin 3.5s ease-in-out infinite;
+    filter:drop-shadow(0 0 10px rgba(255,210,90,.55))}
+  @keyframes sparkSpin{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-12deg) scale(1.12)}
+    50%{transform:rotate(0) scale(1)}75%{transform:rotate(12deg) scale(1.12)}}
   .logo b{background:var(--grad);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;color:transparent;
-     animation:gradshift 6s linear infinite;font-size:1.55rem}
-  .navlinks{display:flex;gap:34px;font-size:1rem;color:var(--muted);font-weight:600;letter-spacing:.2px}
-  .navlinks a{position:relative;transition:.25s;padding:4px 0}
+     animation:gradshift 6s linear infinite;font-size:1.7rem}
+  .navlinks{display:flex;gap:34px;font-size:1.08rem;color:var(--muted);font-weight:600;letter-spacing:.2px}
+  .navlinks a{position:relative;transition:.25s;padding:4px 0;display:inline-flex;align-items:center;gap:6px}
+  .navlinks a::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);
+    opacity:0;transform:translateX(-6px) scale(.6);transition:.3s;box-shadow:0 0 10px var(--accent)}
+  .navlinks a:hover::before,.navlinks a.active::before{opacity:1;transform:translateX(0) scale(1)}
   .navlinks a:hover{color:var(--txt)}
   .navlinks a::after{content:"";position:absolute;left:0;bottom:-6px;height:2px;width:0;
     background:var(--grad);background-size:200% 100%;animation:gradshift 6s linear infinite;
     transition:width .35s ease;border-radius:2px;box-shadow:0 0 8px rgba(108,140,255,.5)}
   .navlinks a:hover::after,.navlinks a.active::after{width:100%}
   .navlinks a.active{color:var(--txt)}
-  .nav-cta{padding:11px 22px;border-radius:999px;background:var(--grad);background-size:200% 200%;color:#fff;
-    font-weight:600;font-size:.95rem;letter-spacing:.2px;
+  .nav-cta{padding:12px 24px;border-radius:999px;background:var(--grad);background-size:200% 200%;color:#fff;
+    font-weight:600;font-size:1rem;letter-spacing:.2px;
     box-shadow:0 10px 28px rgba(108,140,255,.4);transition:.25s;animation:gradshift 6s linear infinite;
-    position:relative;overflow:hidden}
+    position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:8px}
+  .nav-cta .arr{display:inline-block;transition:transform .3s}
   .nav-cta::after{content:"";position:absolute;top:-50%;left:-60%;width:35%;height:200%;
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
     transform:skewX(-20deg);transition:.7s}
-  .nav-cta:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 16px 38px rgba(108,140,255,.55)}
+  .nav-cta:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 16px 38px rgba(108,140,255,.55)}
+  .nav-cta:hover .arr{transform:translateX(4px)}
   .nav-cta:hover::after{left:160%}
   .burger{display:none;font-size:1.6rem;cursor:pointer;background:none;border:0;color:var(--txt)}
 
@@ -143,8 +152,8 @@
     animation:shimmer 3.4s linear infinite;font-weight:700}
   @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-  /* ---- Hero (tighter top + scroll-hint at flex bottom) ---- */
-  .hero{min-height:100vh;display:flex;flex-direction:column;padding:78px 7vw 24px;position:relative}
+  /* ---- Hero (more breathing room above badge, tight bottom) ---- */
+  .hero{display:flex;flex-direction:column;padding:118px 7vw 52px;position:relative}
 
   .hero-blob{position:absolute;top:18%;left:0;width:60vw;max-width:780px;height:60vw;max-height:780px;z-index:-1;pointer-events:none;
     background:radial-gradient(closest-side,rgba(155,108,255,.32),rgba(108,140,255,.18) 45%,transparent 70%);
@@ -231,14 +240,6 @@
      animation:gradshift 6s linear infinite,glowPulse 3s ease-in-out infinite}
   @keyframes glowPulse{0%,100%{filter:drop-shadow(0 0 4px rgba(108,140,255,.3))}50%{filter:drop-shadow(0 0 12px rgba(108,140,255,.7))}}
   .stat .lbl{color:var(--muted);font-size:.82rem;margin-top:4px}
-
-  /* Scroll hint (inline, pushed to bottom of hero flex) */
-  .scroll-hint{margin:18px auto 0;align-self:center;font-size:.7rem;letter-spacing:2px;color:var(--muted);
-    text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.7;
-    font-family:'JetBrains Mono';font-weight:600}
-  .scroll-hint .arrow{width:16px;height:16px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);
-    transform:rotate(45deg);animation:scrollBounce 1.8s ease-in-out infinite}
-  @keyframes scrollBounce{0%,100%{transform:rotate(45deg) translateY(0);opacity:.45}50%{transform:rotate(45deg) translateY(5px);opacity:1}}
 
   /* Cards / glass */
   .glass{border:1px solid var(--stroke);border-radius:20px;background:var(--glass);backdrop-filter:blur(10px)}
@@ -349,7 +350,7 @@
     .eyebrow{font-size:.9rem;letter-spacing:2px}
     .navlinks.open{display:flex;position:absolute;top:60px;left:0;right:0;flex-direction:column;
        padding:18px 6vw;background:rgba(6,8,21,.97);border-bottom:1px solid var(--stroke)}
-    #spotlight,.orbit,.scroll-hint{display:none}
+    #spotlight,.orbit{display:none}
     .proj{transform:none!important}
     .trusted .clients{gap:16px}
   }
@@ -364,7 +365,7 @@
 
 <!-- NAV -->
 <nav id="nav">
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Aditya<b>.</b>Yadav</div>
+  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})"><span class="spark">⚡</span>Aditya<b>.</b>Yadav</div>
   <div class="navlinks" id="navlinks">
     <a href="#about">About</a>
     <a href="#skills">Skills</a>
@@ -372,7 +373,7 @@
     <a href="#projects">Projects</a>
     <a href="#certs">Certifications</a>
   </div>
-  <a href="#contact" class="nav-cta">Get in touch</a>
+  <a href="#contact" class="nav-cta">Get in touch <span class="arr">➜</span></a>
   <button class="burger" id="burger" aria-label="menu">☰</button>
 </nav>
 
@@ -433,8 +434,6 @@
     <div class="stat reveal"><div class="num" data-target="200" data-suffix="+">0</div><div class="lbl">Tables Migrated</div></div>
     <div class="stat reveal"><div class="num" data-target="7" data-suffix="">0</div><div class="lbl">Certifications</div></div>
   </div>
-
-  <div class="scroll-hint"><span>Scroll</span><span class="arrow"></span></div>
 </header>
 
 <!-- ABOUT -->
