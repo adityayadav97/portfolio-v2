@@ -1,16 +1,24 @@
-# Aditya Yadav — Portfolio
+# Aditya Yadav - Data Engineering Portfolio
 
-A premium, animated personal portfolio website.
+A cinematic, accessibility-first portfolio built as a static Astro site. The
+experience uses one lightweight data-flow canvas, semantic HTML, reduced-motion
+fallbacks, and evidence-led project storytelling.
 
-🔗 **Live:** https://adityayadav97.github.io
+## Local development
 
-## Tech
-- Single-file, dependency-free (HTML + CSS + vanilla JS)
-- Animated aurora background, typing effect, scroll-reveal, animated counters
-- Fully responsive
+```bash
+npm install
+npm run dev
+```
 
-## Run locally
-Just open `index.html` in any browser.
+## Validation
 
-## Deploy
-Hosted free on **GitHub Pages** from the `main` branch.
+```bash
+npm test
+```
+
+## Deployment
+
+Pushes to `main` are built and deployed through GitHub Actions to:
+
+https://adityayadav97.github.io/portfolio-v2/

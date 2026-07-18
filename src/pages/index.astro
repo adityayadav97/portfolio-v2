@@ -1,0 +1,753 @@
+---
+import "@fontsource-variable/space-grotesk";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/600.css";
+import "@fontsource/instrument-serif";
+import "../styles/global.css";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Award,
+  Check,
+  CodeXml,
+  ContactRound,
+  Database,
+  FileText,
+  Mail,
+  Menu,
+  Pause,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "@lucide/astro";
+
+const resumeUrl =
+  "https://drive.google.com/file/d/1mhOFp3oGO1Zi1V76GKXMZral6wfICptW/view?usp=sharing";
+
+const experiences = [
+  {
+    period: "Sep 2025 - Present",
+    role: "Data Engineer",
+    client: "Expedia Group",
+    context: "Business Performance Engineering, via EPAM",
+    impact:
+      "Migrating production Spark and Scala workloads into a centralized AWS data platform while protecting data quality, access, and downstream continuity.",
+    metrics: ["200+ tables", "6+ pipelines", "0 data loss"],
+  },
+  {
+    period: "Feb 2025 - Aug 2025",
+    role: "Data Engineer",
+    client: "Atlassian",
+    context: "VNext data platform modernization, via EPAM",
+    impact:
+      "Moved 45+ source and consume-layer tables with zero downtime, automated UUID workflows, and introduced reconciliation controls for safer releases.",
+    metrics: ["45+ tables", "40% less manual effort", "30% faster pipelines"],
+  },
+  {
+    period: "Oct 2024 - Jan 2025",
+    role: "Data Engineer",
+    client: "Adidas",
+    context: "B2B data domain, via EPAM",
+    impact:
+      "Integrated SAP S/4HANA data into a Databricks lakehouse and tuned compute configurations through measured performance tests.",
+    metrics: ["SAP S/4HANA", "Delta Lake", "Cost tuned"],
+  },
+  {
+    period: "Jun 2024 - Sep 2024",
+    role: "Data Software Engineering Trainee",
+    client: "EPAM Systems",
+    context: "Four-month intensive engineering program",
+    impact:
+      "Built the foundation across Python, SQL, Spark, Kafka, cloud platforms, warehousing, streaming, and orchestration used in the client work that followed.",
+    metrics: ["Top graduate", "90%+ score", "Production ready"],
+  },
+];
+
+const projects = [
+  {
+    number: "01",
+    id: "lakehouse",
+    kind: "Batch systems",
+    title: "Retail Lakehouse Pipeline",
+    statement: "A million records, promoted only when every quality gate agrees.",
+    description:
+      "A local-to-cloud lakehouse that moves retail data through Bronze, Silver, Gold, and dbt marts. Delta MERGE keeps reruns idempotent while automated checks stop bad data before publication.",
+    metrics: [
+      ["1M+", "records processed"],
+      ["15+", "quality checks"],
+      ["4", "governed layers"],
+    ],
+    stack: ["PySpark", "Delta Lake", "dbt", "Airflow", "Docker"],
+    repo: "https://github.com/adityayadav97/retail-lakehouse-pipeline",
+  },
+  {
+    number: "02",
+    id: "streaming",
+    kind: "Streaming systems",
+    title: "Real-Time Events Pipeline",
+    statement: "Clickstream events become trusted insight in under a minute.",
+    description:
+      "Kafka feeds Spark Structured Streaming with explicit schemas, checkpointing, watermarks, and bounded micro-batches. Delta provides exactly-once persistence before dbt builds analytics-ready marts.",
+    metrics: [
+      ["10K+", "events per minute"],
+      ["<60s", "event-to-insight"],
+      ["10 min", "late-data window"],
+    ],
+    stack: ["Kafka", "Spark Streaming", "Delta Lake", "dbt", "Airflow"],
+    repo: "https://github.com/adityayadav97/realtime-events-pipeline",
+  },
+  {
+    number: "03",
+    id: "benchbuddy",
+    kind: "Applied AI",
+    title: "BenchBuddy AI",
+    statement: "Useful answers with evidence, confidence, and a clean escalation path.",
+    description:
+      "An award-winning PMO knowledge assistant built around retrieval, confidence calibration, and explicit guardrails. It stays grounded in an approved knowledge base and escalates when certainty is not enough.",
+    metrics: [
+      ["11/11", "tests passing"],
+      ["<5s", "cold start"],
+      ["2026", "Gen-AI Kata winner"],
+    ],
+    stack: ["Python", "FastAPI", "TF-IDF", "Streamlit", "pytest"],
+    repo: "https://github.com/adityayadav97/benchbuddy-ai",
+    live: "https://benchbuddy.streamlit.app/",
+  },
+  {
+    number: "04",
+    id: "dashboard",
+    kind: "Analytics product",
+    title: "Retail Analytics Dashboard",
+    statement: "Gold-layer data, shaped for decisions instead of another table dump.",
+    description:
+      "A Streamlit product surface for revenue KPIs, customer value tiers, quality gates, and pipeline health. The repository is public; deployment remains intentionally marked as not yet live.",
+    metrics: [
+      ["5", "analysis surfaces"],
+      ["4", "quality signals"],
+      ["1", "connected lakehouse"],
+    ],
+    stack: ["Streamlit", "Plotly", "Pandas", "Python"],
+    repo: "https://github.com/adityayadav97/retail-analytics-dashboard",
+  },
+];
+
+const capabilities = [
+  {
+    label: "Process",
+    title: "Distributed compute",
+    copy: "Spark, PySpark, Scala, SQL, Databricks",
+  },
+  {
+    label: "Move",
+    title: "Batch and streaming",
+    copy: "Kafka, Airflow, dbt, StoneBranch, structured streaming",
+  },
+  {
+    label: "Store",
+    title: "Cloud data platforms",
+    copy: "AWS S3, EMR, EC2, Delta Lake, Hive, Azure",
+  },
+  {
+    label: "Trust",
+    title: "Governance and quality",
+    copy: "PII compliance, reconciliation, schema controls, observability",
+  },
+];
+
+const credentials = [
+  [
+    "Databricks Data Engineer Associate",
+    "Databricks, 2026",
+    "https://credentials.databricks.com/606adea5-518e-41f4-beb5-d929ce035e10",
+  ],
+  [
+    "Databricks Machine Learning Associate",
+    "Databricks, 2026",
+    "https://credentials.databricks.com/b47db26e-1464-4a26-bba3-aaf98bc87126",
+  ],
+  [
+    "Claude Certified Architect",
+    "Anthropic, 2026",
+    "https://verify.skilljar.com/c/zdevrb9toz3j",
+  ],
+  [
+    "AWS Certified Cloud Practitioner",
+    "Amazon Web Services, 2025",
+    "https://www.credly.com/badges/4e01b90f-ab6b-4937-a70b-2f5a6be5b97c/linked_in_profile",
+  ],
+  [
+    "Azure Fundamentals",
+    "Microsoft, 2025",
+    "https://learn.microsoft.com/api/credentials/share/en-us/Adityayadav-8366/C5F971221032C906?sharingId=E85349BF47D2DA66",
+  ],
+  [
+    "Azure AI Fundamentals",
+    "Microsoft, 2025",
+    "https://learn.microsoft.com/en-us/users/adityayadav-8366/credentials/74674ff030b304ce",
+  ],
+];
+
+const recognition = [
+  ["Generative AI Kata", "Winner, EPAM.AI, Jun 2026"],
+  ["Architectural Kata", "Winner, EngX India, Apr 2026"],
+  ["BAPDM Quarterly Quiz", "Champion across 12 quizzes, 2025"],
+  ["EngX Bootcamp", "Top graduate with 90%+ performance, 2024"],
+];
+
+const canonical = "https://adityayadav97.github.io/portfolio-v2/";
+const socialImage = `${canonical}og.png`;
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Aditya Yadav",
+  jobTitle: "Data Engineer",
+  worksFor: { "@type": "Organization", name: "EPAM Systems" },
+  url: canonical,
+  email: "mailto:adityayadav8g@gmail.com",
+  sameAs: [
+    "https://github.com/adityayadav97",
+    "https://www.linkedin.com/in/theadityayadav/",
+  ],
+  knowsAbout: [
+    "Apache Spark",
+    "Scala",
+    "AWS",
+    "Databricks",
+    "Data engineering",
+    "Data governance",
+  ],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#070908" />
+    <meta
+      name="description"
+      content="Aditya Yadav is a Data Engineer at EPAM building reliable Spark, Scala, AWS, and Databricks systems at enterprise scale."
+    />
+    <meta name="author" content="Aditya Yadav" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonical} />
+    <link
+      rel="icon"
+      href="https://avatars.githubusercontent.com/u/67759837?v=4"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content="Aditya Yadav - Data Engineer" />
+    <meta
+      property="og:description"
+      content="From raw events to data systems teams can trust."
+    />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Aditya Yadav data engineering portfolio and five-stage data pipeline"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Aditya Yadav - Data Engineer" />
+    <meta
+      name="twitter:description"
+      content="From raw events to data systems teams can trust."
+    />
+    <meta name="twitter:image" content={socialImage} />
+    <meta
+      name="twitter:image:alt"
+      content="Aditya Yadav data engineering portfolio and five-stage data pipeline"
+    />
+    <title>Aditya Yadav | Data Engineer</title>
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"></div>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="Aditya Yadav, back to top">
+        <span>AY</span>
+        <small>Data systems</small>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Primary navigation">
+        <a href="#impact">Impact</a>
+        <a href="#work">Work</a>
+        <a href="#systems">Systems</a>
+        <a href="#about">About</a>
+      </nav>
+
+      <a class="header-cta" href="mailto:adityayadav8g@gmail.com">
+        <Mail size={17} stroke-width={1.8} aria-hidden="true" />
+        <span>Open channel</span>
+      </a>
+
+      <button
+        class="menu-button"
+        type="button"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="mobile-navigation"
+        data-menu-button
+        title="Open navigation"
+      >
+        <Menu class="menu-open-icon" size={22} aria-hidden="true" />
+        <X class="menu-close-icon" size={22} aria-hidden="true" />
+      </button>
+
+      <nav
+        class="mobile-nav"
+        id="mobile-navigation"
+        aria-label="Mobile navigation"
+        data-mobile-nav
+        hidden
+      >
+        <a href="#impact">Impact <span>01</span></a>
+        <a href="#work">Work <span>02</span></a>
+        <a href="#systems">Systems <span>03</span></a>
+        <a href="#about">About <span>04</span></a>
+        <a href={resumeUrl} target="_blank" rel="noreferrer">
+          Resume <ArrowUpRight size={18} aria-hidden="true" />
+        </a>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero dark-section" id="top" data-section="top">
+        <canvas id="data-flow" aria-hidden="true"></canvas>
+        <div class="hero-grid grid-shell">
+          <div class="hero-kicker" data-reveal>
+            <span class="status-dot" aria-hidden="true"></span>
+            Data Engineer at EPAM / Gurgaon, India
+          </div>
+
+          <div class="hero-copy" data-reveal>
+            <p class="chapter-label">00 / Identity</p>
+            <h1>
+              <span>Aditya</span>
+              <span>Yadav</span>
+            </h1>
+            <p class="hero-thesis">
+              I turn complex data into systems teams can <em>trust.</em>
+            </p>
+            <p class="hero-summary">
+              Spark, Scala, AWS, and Databricks for production data platforms
+              where scale matters and correctness cannot be negotiated.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-solid" href="#impact">
+                <span>Explore the impact</span>
+                <ArrowDownRight size={19} aria-hidden="true" />
+              </a>
+              <a
+                class="button button-ghost"
+                href={resumeUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileText size={18} aria-hidden="true" />
+                <span>View resume</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="hero-telemetry" aria-label="Selected engineering metrics">
+            <div>
+              <span>Throughput</span>
+              <strong data-flow-throughput>10.4k/min</strong>
+            </div>
+            <div>
+              <span>Quality gate</span>
+              <strong>15/15 pass</strong>
+            </div>
+            <div>
+              <span>Delivery</span>
+              <strong>Exactly once</strong>
+            </div>
+          </div>
+
+          <button
+            class="flow-control"
+            id="flow-toggle"
+            type="button"
+            aria-pressed="false"
+            title="Pause data flow"
+          >
+            <Pause class="pause-icon" size={18} aria-hidden="true" />
+            <Play class="play-icon" size={18} aria-hidden="true" />
+            <span data-flow-label>Pause flow</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="proof-band" id="impact" data-section="impact">
+        <div class="grid-shell proof-grid">
+          <p class="proof-intro">Production evidence</p>
+          <div class="proof-stat">
+            <strong>200+</strong>
+            <span>tables migrated</span>
+          </div>
+          <div class="proof-stat">
+            <strong>6+</strong>
+            <span>production pipelines</span>
+          </div>
+          <div class="proof-stat">
+            <strong>0</strong>
+            <span>data loss</span>
+          </div>
+          <div class="proof-stat">
+            <strong>3</strong>
+            <span>Fortune 500 clients</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="manifesto paper-section" data-section="impact">
+        <div class="grid-shell manifesto-grid">
+          <p class="chapter-label dark-label" data-reveal>01 / Point of view</p>
+          <div class="manifesto-copy" data-reveal>
+            <h2>
+              Data is not valuable when it lands. It is valuable when the next
+              person can rely on it.
+            </h2>
+            <p>
+              My work sits between raw systems and real decisions: migrating
+              legacy estates, designing quality gates, resolving production
+              failures, and making data platforms easier to operate at scale.
+            </p>
+          </div>
+          <figure class="portrait" data-reveal>
+            <img
+              src="https://avatars.githubusercontent.com/u/67759837?v=4"
+              alt="Portrait of Aditya Yadav"
+              width="460"
+              height="460"
+              loading="lazy"
+            />
+            <figcaption>
+              <span>Aditya Yadav</span>
+              <span>Data Engineer / Builder</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="experience paper-section" data-section="impact">
+        <div class="grid-shell section-heading" data-reveal>
+          <p class="chapter-label dark-label">02 / Production trail</p>
+          <h2>Work measured in migrations, reliability, and people unblocked.</h2>
+        </div>
+
+        <div class="experience-list grid-shell">
+          {
+            experiences.map((item, index) => (
+              <article class="experience-row" data-reveal>
+                <p class="row-index">{String(index + 1).padStart(2, "0")}</p>
+                <p class="row-period">{item.period}</p>
+                <div class="row-role">
+                  <h3>{item.role}</h3>
+                  <p>{item.client}</p>
+                  <small>{item.context}</small>
+                </div>
+                <div class="row-impact">
+                  <p>{item.impact}</p>
+                  <ul aria-label={`${item.client} impact metrics`}>
+                    {item.metrics.map((metric) => <li>{metric}</li>)}
+                  </ul>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
+      <section class="work-intro dark-section" id="work" data-section="work">
+        <div class="grid-shell section-heading light-heading" data-reveal>
+          <p class="chapter-label">03 / Selected systems</p>
+          <h2>Four builds. Four different ways to make data useful.</h2>
+          <p class="section-summary">
+            Every project exposes the architecture, the constraint, and the
+            proof. No placeholder demos. No invented live links.
+          </p>
+        </div>
+      </section>
+
+      {
+        projects.map((project, projectIndex) => (
+          <section
+            class:list={["project-chapter", `project-${project.id}`]}
+            id={project.id}
+            data-section="work"
+          >
+            <div class="grid-shell project-grid">
+              <div class="project-meta" data-reveal>
+                <p>{project.number}</p>
+                <span>{project.kind}</span>
+              </div>
+
+              <div class="project-copy" data-reveal>
+                <h3>{project.title}</h3>
+                <p class="project-statement">{project.statement}</p>
+                <p class="project-description">{project.description}</p>
+                <ul class="stack-list" aria-label={`${project.title} technology stack`}>
+                  {project.stack.map((item) => <li>{item}</li>)}
+                </ul>
+                <div class="project-links">
+                  <a href={project.repo} target="_blank" rel="noreferrer">
+                    <CodeXml size={18} aria-hidden="true" />
+                    Source
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </a>
+                  {project.live && (
+                    <a href={project.live} target="_blank" rel="noreferrer">
+                      <Sparkles size={18} aria-hidden="true" />
+                      Live product
+                      <ArrowUpRight size={16} aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div
+                class:list={["project-visual", `visual-${project.id}`]}
+                role="img"
+                aria-label={
+                  project.id === "lakehouse"
+                    ? "Diagram of data moving from raw sources through Bronze, Silver, Gold, and analytics marts"
+                    : project.id === "streaming"
+                      ? "Diagram of events moving through Kafka, Spark Streaming, Delta Lake, and dbt"
+                      : project.id === "benchbuddy"
+                        ? "Grounded assistant response showing confidence, category, and escalation status"
+                        : "Analytics interface showing revenue, quality, and pipeline-health signals"
+                }
+                data-reveal
+              >
+                {project.id === "lakehouse" && (
+                  <div class="lakehouse-flow" aria-hidden="true">
+                    <div class="flow-node raw-node"><span>RAW</span><b>1,052,000</b></div>
+                    <i></i>
+                    <div class="flow-node bronze-node"><span>BRONZE</span><b>INGEST</b></div>
+                    <i></i>
+                    <div class="flow-node silver-node"><span>SILVER</span><b>CLEAN</b></div>
+                    <i></i>
+                    <div class="flow-node gold-node"><span>GOLD</span><b>TRUSTED</b></div>
+                    <i></i>
+                    <div class="flow-node marts-node"><span>MARTS</span><b>READY</b></div>
+                  </div>
+                )}
+
+                {project.id === "streaming" && (
+                  <div class="stream-flow" aria-hidden="true">
+                    <div class="stream-source">
+                      <span>EVENTS</span>
+                      <b>10,482 / MIN</b>
+                    </div>
+                    <div class="stream-line"><i></i><i></i><i></i><i></i></div>
+                    <div class="stream-processors">
+                      <span>KAFKA</span><span>SPARK</span><span>DELTA</span><span>DBT</span>
+                    </div>
+                    <div class="stream-status">
+                      <Check size={18} aria-hidden="true" /> EXACTLY ONCE
+                    </div>
+                  </div>
+                )}
+
+                {project.id === "benchbuddy" && (
+                  <div class="assistant-ui" aria-hidden="true">
+                    <div class="assistant-topline">
+                      <span>BENCHBUDDY / QUERY 042</span><b>3 MS</b>
+                    </div>
+                    <p>Can I claim an AWS certification reimbursement?</p>
+                    <div class="assistant-answer">
+                      <span>GROUNDED RESPONSE</span>
+                      <strong>Yes. Submit the approved certificate and invoice in the reimbursement portal.</strong>
+                    </div>
+                    <div class="assistant-signals">
+                      <span>Confidence <b>95%</b></span>
+                      <span>Category <b>Certification</b></span>
+                      <span>Status <b>Answered</b></span>
+                    </div>
+                  </div>
+                )}
+
+                {project.id === "dashboard" && (
+                  <div class="dashboard-ui" aria-hidden="true">
+                    <div class="dashboard-head">
+                      <span>GOLD / EXECUTIVE VIEW</span>
+                      <b>QUALITY PASS</b>
+                    </div>
+                    <div class="dashboard-kpis">
+                      <span><small>Revenue</small><b>$4.82M</b></span>
+                      <span><small>Orders</small><b>128K</b></span>
+                      <span><small>Freshness</small><b>2m</b></span>
+                    </div>
+                    <div class="dashboard-chart">
+                      {[36, 62, 44, 78, 58, 88, 72, 94].map((height) => (
+                        <i style={`--bar:${height}%`}></i>
+                      ))}
+                    </div>
+                    <div class="dashboard-foot">
+                      <span>Bronze</span><span>Silver</span><span>Gold</span><span>Marts</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div class="project-metrics" data-reveal>
+                {project.metrics.map(([value, label]) => (
+                  <div>
+                    <strong>{value}</strong>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p class="project-count" aria-hidden="true">
+                {String(projectIndex + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}
+              </p>
+            </div>
+          </section>
+        ))
+      }
+
+      <section class="systems paper-section" id="systems" data-section="systems">
+        <div class="grid-shell systems-grid">
+          <div class="systems-heading" data-reveal>
+            <p class="chapter-label dark-label">04 / System ownership</p>
+            <h2>From ingestion to the trust layer.</h2>
+            <p>
+              The tools change. The responsibility stays the same: move data
+              predictably, make failures observable, and leave a system easier
+              to operate than it was before.
+            </p>
+          </div>
+
+          <div class="capability-list">
+            {
+              capabilities.map((capability, index) => (
+                <article class="capability-row" data-reveal>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <p>{capability.label}</p>
+                  <h3>{capability.title}</h3>
+                  <small>{capability.copy}</small>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="credentials dark-section" data-section="systems">
+        <div class="grid-shell credentials-grid">
+          <div class="credentials-heading" data-reveal>
+            <p class="chapter-label">05 / Verified signal</p>
+            <h2>Credentials backed by shipped work.</h2>
+            <p>Six active credentials plus the competitive wins that mattered most.</p>
+          </div>
+
+          <div class="credential-list" aria-label="Professional credentials">
+            {
+              credentials.map(([title, issuer, url], index) => (
+                <a href={url} target="_blank" rel="noreferrer" data-reveal>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{title}</strong>
+                  <small>{issuer}</small>
+                  <ArrowUpRight size={18} aria-hidden="true" />
+                </a>
+              ))
+            }
+          </div>
+
+          <div class="recognition-list" aria-label="Awards and recognition">
+            {
+              recognition.map(([title, detail]) => (
+                <article data-reveal>
+                  <Award size={21} aria-hidden="true" />
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{detail}</p>
+                  </div>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="about paper-section" id="about" data-section="about">
+        <div class="grid-shell about-grid">
+          <p class="chapter-label dark-label" data-reveal>06 / About</p>
+          <div class="about-copy" data-reveal>
+            <h2>Engineer the system. Explain the decision. Own the outcome.</h2>
+            <p>
+              I am a Computer Science graduate specializing in Big Data
+              Analytics, now building and migrating enterprise data systems at
+              EPAM. I care about calm production rollouts, visible quality, and
+              automation that removes repetitive work instead of hiding it.
+            </p>
+          </div>
+          <div class="principles" data-reveal>
+            <article>
+              <Database size={22} aria-hidden="true" />
+              <h3>Design for replay</h3>
+              <p>Idempotent paths make recovery a normal operation.</p>
+            </article>
+            <article>
+              <ShieldCheck size={22} aria-hidden="true" />
+              <h3>Trust is engineered</h3>
+              <p>Quality gates belong inside the pipeline, not after it.</p>
+            </article>
+            <article>
+              <Sparkles size={22} aria-hidden="true" />
+              <h3>Automate the drag</h3>
+              <p>Remove manual steps where judgement is not required.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="contact dark-section" id="contact" data-section="about">
+        <div class="grid-shell contact-grid">
+          <div class="contact-status" data-reveal>
+            <span class="status-dot" aria-hidden="true"></span>
+            Open to Data Engineer roles / Gurgaon or remote
+          </div>
+          <p class="chapter-label" data-reveal>07 / Open channel</p>
+          <h2 data-reveal>Let's move data forward.</h2>
+          <a class="contact-email" href="mailto:adityayadav8g@gmail.com" data-reveal>
+            <span>adityayadav8g@gmail.com</span>
+            <ArrowUpRight aria-hidden="true" />
+          </a>
+          <div class="contact-links" data-reveal>
+            <a href="https://github.com/adityayadav97" target="_blank" rel="noreferrer">
+              <CodeXml size={19} aria-hidden="true" /> GitHub
+            </a>
+            <a href="https://www.linkedin.com/in/theadityayadav/" target="_blank" rel="noreferrer">
+              <ContactRound size={19} aria-hidden="true" /> LinkedIn
+            </a>
+            <a href={resumeUrl} target="_blank" rel="noreferrer">
+              <FileText size={19} aria-hidden="true" /> Resume
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="grid-shell footer-grid">
+        <p>Aditya Yadav / Data Engineer</p>
+        <p>Built for signal, scale, and trust.</p>
+        <a href="#top">Back to top <ArrowUpRight size={16} aria-hidden="true" /></a>
+      </div>
+    </footer>
+
+    <script>
+      import "../scripts/main.ts";
+    </script>
+  </body>
+</html>
