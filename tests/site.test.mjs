@@ -41,6 +41,10 @@ test("motion and mobile navigation have accessible fallbacks", () => {
   assert.match(html, /aria-controls="mobile-navigation"/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /id="data-flow" aria-hidden="true"/);
+  assert.match(html, /id="trust-bloom" aria-hidden="true"/);
+  assert.match(html, /aria-label="Pause motion"/);
+  assert.match(html, /data-bloom-section/);
+  assert.match(css, /body\.motion-paused/);
 });
 
 test("the broken retail dashboard live link is not published", () => {

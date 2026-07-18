@@ -1,5 +1,7 @@
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+const easeOutCubic = (value: number) => 1 - (1 - value) ** 3;
 
 function setupHeader() {
   const header = document.querySelector<HTMLElement>("[data-header]");
@@ -117,6 +119,185 @@ function setupActiveNavigation() {
   sections.forEach((section) => observer.observe(section));
 }
 
+function setupCounters() {
+  const counters = Array.from(document.querySelectorAll<HTMLElement>("[data-count]"));
+  if (!counters.length) return;
+
+  const finish = (counter: HTMLElement) => {
+    const target = Number(counter.dataset.count ?? 0);
+    counter.textContent = `${target}${counter.dataset.suffix ?? ""}`;
+    counter.parentElement?.classList.add("is-counted");
+  };
+
+  if (reducedMotionQuery.matches || !("IntersectionObserver" in window)) {
+    counters.forEach(finish);
+    return;
+  }
+
+  const animate = (counter: HTMLElement) => {
+    const target = Number(counter.dataset.count ?? 0);
+    const suffix = counter.dataset.suffix ?? "";
+    const start = performance.now();
+    const duration = 1100;
+
+    const frame = (time: number) => {
+      const progress = clamp((time - start) / duration);
+      counter.textContent = `${Math.round(target * easeOutCubic(progress))}${suffix}`;
+      if (progress < 1) window.requestAnimationFrame(frame);
+    };
+
+    counter.parentElement?.classList.add("is-counted");
+    window.requestAnimationFrame(frame);
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        animate(entry.target as HTMLElement);
+        observer.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.55 },
+  );
+
+  counters.forEach((counter) => observer.observe(counter));
+}
+
+function setupMotionSections() {
+  const hero = document.querySelector<HTMLElement>(".hero");
+  const sections = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-motion-section]"),
+  );
+
+  let userPaused = false;
+
+  if (reducedMotionQuery.matches) {
+    hero?.style.setProperty("--hero-progress", "0");
+    sections.forEach((section) => section.classList.add("is-motion-active"));
+    return;
+  }
+
+  if ("IntersectionObserver" in window) {
+    const visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("is-motion-active", entry.isIntersecting);
+        });
+      },
+      { rootMargin: "12% 0px 12% 0px", threshold: 0.04 },
+    );
+    sections.forEach((section) => visibilityObserver.observe(section));
+  } else {
+    sections.forEach((section) => section.classList.add("is-motion-active"));
+  }
+
+  let queued = false;
+  const update = () => {
+    if (userPaused) {
+      hero?.style.setProperty("--hero-progress", "0");
+      sections.forEach((section) => {
+        section.style.setProperty("--copy-shift", "0px");
+        section.style.setProperty("--visual-shift", "0px");
+      });
+      queued = false;
+      return;
+    }
+    const viewport = window.innerHeight;
+    if (hero) {
+      const heroProgress = clamp(window.scrollY / Math.max(hero.offsetHeight * 0.75, 1));
+      hero.style.setProperty("--hero-progress", heroProgress.toFixed(3));
+    }
+
+    sections.forEach((section) => {
+      const bounds = section.getBoundingClientRect();
+      if (bounds.bottom < -viewport || bounds.top > viewport * 2) return;
+      const progress = clamp((viewport - bounds.top) / (viewport + bounds.height));
+      const copyShift = (0.5 - progress) * 54;
+      const visualShift = (0.5 - progress) * -34;
+      section.style.setProperty("--section-progress", progress.toFixed(3));
+      section.style.setProperty("--copy-shift", `${copyShift.toFixed(2)}px`);
+      section.style.setProperty("--visual-shift", `${visualShift.toFixed(2)}px`);
+    });
+    queued = false;
+  };
+
+  const requestUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  window.addEventListener("motionstatechange", (event) => {
+    userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+    requestUpdate();
+  });
+  update();
+}
+
+function setupTiltSurfaces() {
+  if (!finePointerQuery.matches || reducedMotionQuery.matches) return;
+  const surfaces = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-tilt-surface]"),
+  );
+
+  surfaces.forEach((surface) => {
+    let queued = false;
+    let tiltX = 0;
+    let tiltY = 0;
+
+    const update = () => {
+      surface.style.setProperty("--tilt-x", `${tiltX.toFixed(2)}deg`);
+      surface.style.setProperty("--tilt-y", `${tiltY.toFixed(2)}deg`);
+      queued = false;
+    };
+
+    const requestUpdate = () => {
+      if (queued) return;
+      queued = true;
+      window.requestAnimationFrame(update);
+    };
+
+    surface.addEventListener("pointermove", (event) => {
+      if (document.body.classList.contains("motion-paused")) return;
+      const bounds = surface.getBoundingClientRect();
+      tiltX = ((event.clientY - bounds.top) / bounds.height - 0.5) * -5;
+      tiltY = ((event.clientX - bounds.left) / bounds.width - 0.5) * 7;
+      requestUpdate();
+    });
+
+    surface.addEventListener("pointerleave", () => {
+      tiltX = 0;
+      tiltY = 0;
+      requestUpdate();
+    });
+  });
+}
+
+function setupCapabilitySpotlight() {
+  const rows = Array.from(document.querySelectorAll<HTMLElement>(".capability-row"));
+  if (!rows.length) return;
+
+  if (reducedMotionQuery.matches || !("IntersectionObserver" in window)) {
+    rows[0]?.classList.add("is-current");
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const current = entries.find((entry) => entry.isIntersecting);
+      if (!current) return;
+      rows.forEach((row) => row.classList.remove("is-current"));
+      (current.target as HTMLElement).classList.add("is-current");
+    },
+    { rootMargin: "-41% 0px -41% 0px", threshold: 0 },
+  );
+
+  rows.forEach((row) => observer.observe(row));
+}
+
 type Point = { x: number; y: number };
 
 class DataFlowScene {
@@ -191,8 +372,14 @@ class DataFlowScene {
     this.toggle?.addEventListener("click", () => {
       this.userPaused = !this.userPaused;
       this.toggle?.setAttribute("aria-pressed", String(this.userPaused));
-      this.toggle?.setAttribute("title", this.userPaused ? "Resume data flow" : "Pause data flow");
-      if (this.label) this.label.textContent = this.userPaused ? "Run flow" : "Pause flow";
+      const action = this.userPaused ? "Resume motion" : "Pause motion";
+      this.toggle?.setAttribute("title", action);
+      this.toggle?.setAttribute("aria-label", action);
+      if (this.label) this.label.textContent = action;
+      document.body.classList.toggle("motion-paused", this.userPaused);
+      window.dispatchEvent(
+        new CustomEvent("motionstatechange", { detail: { paused: this.userPaused } }),
+      );
       if (!this.userPaused) this.startTime = performance.now();
       this.draw(performance.now());
       this.updateLoop();
@@ -247,7 +434,7 @@ class DataFlowScene {
 
     if (compact) {
       const y = this.height * 0.78 + shiftY;
-      const points = [0.08, 0.28, 0.49, 0.7, 0.91].map((ratio, index) => ({
+      const points = [0.08, 0.27, 0.47, 0.68, 0.88].map((ratio, index) => ({
         x: this.width * ratio + shiftX * (index / 5),
         y,
       }));
@@ -257,10 +444,10 @@ class DataFlowScene {
     const sourceX = this.width * 0.54;
     const centerY = this.height * 0.5 + shiftY;
     const shared = [
-      { x: this.width * 0.67 + shiftX * 0.3, y: centerY },
-      { x: this.width * 0.77 + shiftX * 0.55, y: centerY },
-      { x: this.width * 0.86 + shiftX * 0.75, y: centerY },
-      { x: this.width * 0.95 + shiftX, y: centerY },
+      { x: this.width * 0.64 + shiftX * 0.3, y: centerY },
+      { x: this.width * 0.73 + shiftX * 0.55, y: centerY },
+      { x: this.width * 0.81 + shiftX * 0.75, y: centerY },
+      { x: this.width * 0.89 + shiftX, y: centerY },
     ];
     return [0.29, 0.5, 0.71].map((ratio) => [
       { x: sourceX, y: this.height * ratio + shiftY * 0.25 },
@@ -269,24 +456,27 @@ class DataFlowScene {
   }
 
   private pointOnRoute(route: Point[], progress: number): Point {
-    const lengths = route.slice(1).map((point, index) => {
-      const previous = route[index];
-      return Math.hypot(point.x - previous.x, point.y - previous.y);
-    });
-    const total = lengths.reduce((sum, length) => sum + length, 0);
+    let total = 0;
+    for (let index = 1; index < route.length; index += 1) {
+      total += Math.hypot(route[index].x - route[index - 1].x, route[index].y - route[index - 1].y);
+    }
     let remaining = progress * total;
 
-    for (let index = 0; index < lengths.length; index += 1) {
-      if (remaining <= lengths[index]) {
+    for (let index = 0; index < route.length - 1; index += 1) {
+      const length = Math.hypot(
+        route[index + 1].x - route[index].x,
+        route[index + 1].y - route[index].y,
+      );
+      if (remaining <= length) {
         const start = route[index];
         const end = route[index + 1];
-        const ratio = remaining / lengths[index];
+        const ratio = remaining / length;
         return {
           x: start.x + (end.x - start.x) * ratio,
           y: start.y + (end.y - start.y) * ratio,
         };
       }
-      remaining -= lengths[index];
+      remaining -= length;
     }
 
     return route[route.length - 1];
@@ -314,6 +504,82 @@ class DataFlowScene {
     context.restore();
   }
 
+  private drawSignalField(time: number) {
+    const context = this.context;
+    const elapsed = this.reducedMotion || this.userPaused ? 0 : (time - this.startTime) / 1000;
+    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0"];
+    const count = this.width < 700 ? 9 : 24;
+
+    context.save();
+    for (let index = 0; index < count; index += 1) {
+      const baseX = this.width * (0.47 + ((index * 0.137) % 0.5));
+      const baseY = this.height * (0.12 + ((index * 0.211) % 0.76));
+      const offset = Math.sin(elapsed * 0.7 + index * 1.9) * (index % 3 === 0 ? 9 : 4);
+      context.globalAlpha = 0.18 + ((index * 7) % 5) * 0.06;
+      context.fillStyle = colors[index % colors.length];
+      const size = index % 6 === 0 ? 5 : 3;
+      context.fillRect(baseX + offset, baseY - offset * 0.45, size, size);
+    }
+    context.restore();
+  }
+
+  private drawTrustBloom(center: Point, time: number, compact: boolean) {
+    const context = this.context;
+    const elapsed = this.reducedMotion || this.userPaused ? 0.7 : (time - this.startTime) / 1000;
+    const petalCount = compact ? 7 : 11;
+    const radius = compact ? 30 : 58;
+    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0"];
+    const pulse = this.reducedMotion ? 1 : 0.9 + Math.sin(elapsed * 1.35) * 0.1;
+
+    context.save();
+    context.translate(center.x, center.y);
+    context.rotate(elapsed * 0.035);
+
+    for (let index = 0; index < petalCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / petalCount;
+      const length = radius * pulse * (index % 2 === 0 ? 1 : 0.78);
+      const width = compact ? 9 : 15;
+      const tipX = Math.cos(angle) * length;
+      const tipY = Math.sin(angle) * length;
+      const normalX = Math.cos(angle + Math.PI / 2) * width;
+      const normalY = Math.sin(angle + Math.PI / 2) * width;
+
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.bezierCurveTo(
+        tipX * 0.34 + normalX,
+        tipY * 0.34 + normalY,
+        tipX * 0.76 + normalX * 0.3,
+        tipY * 0.76 + normalY * 0.3,
+        tipX,
+        tipY,
+      );
+      context.bezierCurveTo(
+        tipX * 0.76 - normalX * 0.3,
+        tipY * 0.76 - normalY * 0.3,
+        tipX * 0.34 - normalX,
+        tipY * 0.34 - normalY,
+        0,
+        0,
+      );
+      context.globalAlpha = 0.15;
+      context.fillStyle = colors[index % colors.length];
+      context.fill();
+      context.globalAlpha = 0.8;
+      context.strokeStyle = colors[index % colors.length];
+      context.lineWidth = 1;
+      context.stroke();
+    }
+
+    context.globalAlpha = 0.8;
+    context.strokeStyle = "#f3f1e8";
+    context.setLineDash([2, 6]);
+    context.beginPath();
+    context.arc(0, 0, radius * 0.62, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
+
   private drawNode(point: Point, label: string, active = false) {
     const context = this.context;
     const compact = this.width < 700;
@@ -338,6 +604,7 @@ class DataFlowScene {
     const context = this.context;
     context.clearRect(0, 0, this.width, this.height);
     this.drawGrid();
+    this.drawSignalField(time);
 
     const routes = this.getRoutes();
     const compact = this.width < 700;
@@ -357,6 +624,7 @@ class DataFlowScene {
     context.restore();
 
     const primaryRoute = routes[Math.floor(routes.length / 2)];
+    this.drawTrustBloom(primaryRoute[primaryRoute.length - 1], time, compact);
     primaryRoute.forEach((point, index) => this.drawNode(point, labels[index], index === labels.length - 1));
 
     if (routes.length > 1) {
@@ -391,6 +659,289 @@ class DataFlowScene {
   }
 }
 
+class TrustBloomScene {
+  private canvas: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  private section: HTMLElement;
+  private stage: HTMLElement;
+  private width = 0;
+  private height = 0;
+  private dpr = 1;
+  private frame = 0;
+  private visible = false;
+  private pageVisible = !document.hidden;
+  private reducedMotion = reducedMotionQuery.matches;
+  private userPaused = false;
+  private progress = 0.24;
+  private startTime = performance.now();
+  private pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
+
+  constructor(canvas: HTMLCanvasElement, section: HTMLElement, stage: HTMLElement) {
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas 2D context is unavailable");
+    this.canvas = canvas;
+    this.context = context;
+    this.section = section;
+    this.stage = stage;
+    this.bind();
+    this.resize();
+    this.updateProgress();
+    this.draw(performance.now());
+  }
+
+  private bind() {
+    const resizeObserver = new ResizeObserver(() => this.resize());
+    resizeObserver.observe(this.stage);
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        this.visible = Boolean(entry?.isIntersecting);
+        this.updateLoop();
+      },
+      { rootMargin: "20% 0px 20% 0px", threshold: 0.01 },
+    );
+    visibilityObserver.observe(this.stage);
+
+    let scrollQueued = false;
+    const requestProgress = () => {
+      if (scrollQueued) return;
+      scrollQueued = true;
+      window.requestAnimationFrame(() => {
+        this.updateProgress();
+        this.draw(performance.now());
+        scrollQueued = false;
+      });
+    };
+
+    window.addEventListener("scroll", requestProgress, { passive: true });
+
+    document.addEventListener("visibilitychange", () => {
+      this.pageVisible = !document.hidden;
+      this.updateLoop();
+    });
+
+    reducedMotionQuery.addEventListener("change", (event) => {
+      this.reducedMotion = event.matches;
+      this.progress = event.matches ? 1 : this.progress;
+      this.draw(performance.now());
+      this.updateLoop();
+    });
+
+    window.addEventListener("motionstatechange", (event) => {
+      this.userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+      this.draw(performance.now());
+      this.updateLoop();
+    });
+
+    if (finePointerQuery.matches) {
+      this.stage.addEventListener("pointermove", (event) => {
+        const bounds = this.stage.getBoundingClientRect();
+        this.pointer.targetX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 16;
+        this.pointer.targetY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 16;
+      });
+      this.stage.addEventListener("pointerleave", () => {
+        this.pointer.targetX = 0;
+        this.pointer.targetY = 0;
+      });
+    }
+  }
+
+  private resize() {
+    const bounds = this.stage.getBoundingClientRect();
+    this.width = Math.max(1, bounds.width);
+    this.height = Math.max(1, bounds.height);
+    this.dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+    this.canvas.width = Math.round(this.width * this.dpr);
+    this.canvas.height = Math.round(this.height * this.dpr);
+    this.context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.draw(performance.now());
+  }
+
+  private updateProgress() {
+    if (this.reducedMotion) {
+      this.progress = 1;
+      return;
+    }
+    const bounds = this.section.getBoundingClientRect();
+    const viewport = window.innerHeight;
+    this.progress = clamp((viewport * 0.94 - bounds.top) / (bounds.height + viewport * 0.36));
+  }
+
+  private shouldAnimate() {
+    return this.visible && this.pageVisible && !this.reducedMotion && !this.userPaused;
+  }
+
+  private updateLoop() {
+    if (this.shouldAnimate() && !this.frame) {
+      this.frame = window.requestAnimationFrame((time) => this.tick(time));
+    } else if (!this.shouldAnimate() && this.frame) {
+      window.cancelAnimationFrame(this.frame);
+      this.frame = 0;
+    }
+  }
+
+  private tick(time: number) {
+    this.frame = 0;
+    this.pointer.x += (this.pointer.targetX - this.pointer.x) * 0.055;
+    this.pointer.y += (this.pointer.targetY - this.pointer.y) * 0.055;
+    this.draw(time);
+    if (this.shouldAnimate()) {
+      this.frame = window.requestAnimationFrame((nextTime) => this.tick(nextTime));
+    }
+  }
+
+  private drawGrid() {
+    const context = this.context;
+    context.save();
+    context.strokeStyle = "rgba(243, 241, 232, 0.075)";
+    context.lineWidth = 1;
+    const step = this.width < 380 ? 28 : 34;
+    for (let x = 0.5; x < this.width; x += step) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x, this.height);
+      context.stroke();
+    }
+    for (let y = 0.5; y < this.height; y += step) {
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(this.width, y);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  private drawPetal(
+    angle: number,
+    length: number,
+    width: number,
+    color: string,
+    alpha: number,
+  ) {
+    const context = this.context;
+    const tipX = Math.cos(angle) * length;
+    const tipY = Math.sin(angle) * length;
+    const normalX = Math.cos(angle + Math.PI / 2) * width;
+    const normalY = Math.sin(angle + Math.PI / 2) * width;
+
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.bezierCurveTo(
+      tipX * 0.28 + normalX,
+      tipY * 0.28 + normalY,
+      tipX * 0.76 + normalX * 0.34,
+      tipY * 0.76 + normalY * 0.34,
+      tipX,
+      tipY,
+    );
+    context.bezierCurveTo(
+      tipX * 0.76 - normalX * 0.34,
+      tipY * 0.76 - normalY * 0.34,
+      tipX * 0.28 - normalX,
+      tipY * 0.28 - normalY,
+      0,
+      0,
+    );
+    context.globalAlpha = alpha;
+    context.fillStyle = color;
+    context.fill();
+    context.globalAlpha = Math.min(1, alpha * 4.2);
+    context.strokeStyle = color;
+    context.lineWidth = 1.2;
+    context.stroke();
+  }
+
+  private draw(time: number) {
+    if (!this.width || !this.height) return;
+    const context = this.context;
+    const elapsed = this.reducedMotion ? 0.7 : (time - this.startTime) / 1000;
+    const open = this.reducedMotion ? 1 : easeOutCubic(clamp(this.progress * 1.22 + 0.04));
+    const minSize = Math.min(this.width, this.height);
+    const centerX = this.width / 2 + this.pointer.x;
+    const centerY = this.height / 2 - minSize * 0.035 + this.pointer.y;
+    const outerRadius = minSize * (0.2 + open * 0.23);
+    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0", "#ffd447"];
+
+    context.clearRect(0, 0, this.width, this.height);
+    context.fillStyle = "#070908";
+    context.fillRect(0, 0, this.width, this.height);
+    this.drawGrid();
+
+    context.save();
+    context.translate(centerX, centerY);
+    context.rotate(elapsed * 0.045 + open * 0.18);
+
+    const outerPetals = 12;
+    for (let index = 0; index < outerPetals; index += 1) {
+      const angle = (Math.PI * 2 * index) / outerPetals;
+      const alternating = index % 2 === 0 ? 1 : 0.84;
+      this.drawPetal(
+        angle,
+        outerRadius * alternating,
+        minSize * (0.035 + open * 0.022),
+        colors[index % colors.length],
+        0.1 + open * 0.08,
+      );
+    }
+
+    context.rotate(-elapsed * 0.09 - 0.2);
+    const innerPetals = 8;
+    for (let index = 0; index < innerPetals; index += 1) {
+      const angle = (Math.PI * 2 * index) / innerPetals + Math.PI / innerPetals;
+      this.drawPetal(
+        angle,
+        outerRadius * 0.58,
+        minSize * (0.028 + open * 0.018),
+        colors[(index + 2) % colors.length],
+        0.16 + open * 0.1,
+      );
+    }
+
+    context.globalAlpha = 0.68;
+    context.strokeStyle = "#f3f1e8";
+    context.lineWidth = 1;
+    context.setLineDash([2, 7]);
+    [0.52, 0.78, 1].forEach((ratio) => {
+      context.beginPath();
+      context.arc(0, 0, outerRadius * ratio, 0, Math.PI * 2);
+      context.stroke();
+    });
+    context.setLineDash([]);
+
+    const packetCount = this.width < 380 ? 14 : 24;
+    for (let index = 0; index < packetCount; index += 1) {
+      const angle = (Math.PI * 2 * (index % outerPetals)) / outerPetals;
+      const travel = this.reducedMotion
+        ? 0.66
+        : (elapsed * (0.12 + (index % 4) * 0.018) + index / packetCount) % 1;
+      const radius = outerRadius * (0.14 + travel * 0.92) * open;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      const size = index % 5 === 0 ? 6 : 4;
+      context.globalAlpha = 0.95;
+      context.fillStyle = colors[index % colors.length];
+      context.fillRect(x - size / 2, y - size / 2, size, size);
+    }
+
+    context.globalAlpha = 1;
+    context.fillStyle = "#315cff";
+    context.fillRect(-37, -37, 74, 74);
+    context.fillStyle = "#ff5a36";
+    context.fillRect(-31, -31, 62, 62);
+    context.fillStyle = "#070908";
+    context.fillRect(-25, -25, 50, 50);
+    context.restore();
+
+    context.save();
+    context.fillStyle = "rgba(243, 241, 232, 0.48)";
+    context.font = "8px IBM Plex Mono, monospace";
+    context.fillText("SIGNAL / BLOOM", 14, 22);
+    context.textAlign = "right";
+    context.fillText(`${Math.round(open * 100)}% OPEN`, this.width - 14, 22);
+    context.restore();
+  }
+}
+
 function setupDataFlow() {
   const canvas = document.querySelector<HTMLCanvasElement>("#data-flow");
   if (!canvas) return;
@@ -401,8 +952,25 @@ function setupDataFlow() {
   }
 }
 
+function setupTrustBloom() {
+  const canvas = document.querySelector<HTMLCanvasElement>("#trust-bloom");
+  const section = document.querySelector<HTMLElement>("[data-bloom-section]");
+  const stage = document.querySelector<HTMLElement>("[data-bloom-stage]");
+  if (!canvas || !section || !stage) return;
+  try {
+    new TrustBloomScene(canvas, section, stage);
+  } catch {
+    canvas.remove();
+  }
+}
+
 setupHeader();
 setupMenu();
 setupRevealMotion();
 setupActiveNavigation();
+setupCounters();
+setupMotionSections();
+setupTiltSurfaces();
+setupCapabilitySpotlight();
 setupDataFlow();
+setupTrustBloom();

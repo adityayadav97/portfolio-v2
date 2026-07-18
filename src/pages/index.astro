@@ -268,6 +268,9 @@ const schema = {
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="scroll-progress" aria-hidden="true"></div>
+    <div class="chromatic-rail" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
 
     <header class="site-header" data-header>
       <a class="brand" href="#top" aria-label="Aditya Yadav, back to top">
@@ -326,7 +329,7 @@ const schema = {
             Data Engineer at EPAM / Gurgaon, India
           </div>
 
-          <div class="hero-copy" data-reveal>
+          <div class="hero-copy" data-reveal="hero">
             <p class="chapter-label">00 / Identity</p>
             <h1>
               <span>Aditya</span>
@@ -356,6 +359,13 @@ const schema = {
             </div>
           </div>
 
+          <div class="hero-color-key" aria-hidden="true">
+            <span>RAW</span>
+            <span>MOVE</span>
+            <span>MODEL</span>
+            <span>TRUST</span>
+          </div>
+
           <div class="hero-telemetry" aria-label="Selected engineering metrics">
             <div>
               <span>Throughput</span>
@@ -376,11 +386,12 @@ const schema = {
             id="flow-toggle"
             type="button"
             aria-pressed="false"
-            title="Pause data flow"
+            aria-label="Pause motion"
+            title="Pause motion"
           >
             <Pause class="pause-icon" size={18} aria-hidden="true" />
             <Play class="play-icon" size={18} aria-hidden="true" />
-            <span data-flow-label>Pause flow</span>
+            <span data-flow-label>Pause motion</span>
           </button>
         </div>
       </section>
@@ -389,19 +400,19 @@ const schema = {
         <div class="grid-shell proof-grid">
           <p class="proof-intro">Production evidence</p>
           <div class="proof-stat">
-            <strong>200+</strong>
+            <strong data-count="200" data-suffix="+">200+</strong>
             <span>tables migrated</span>
           </div>
           <div class="proof-stat">
-            <strong>6+</strong>
+            <strong data-count="6" data-suffix="+">6+</strong>
             <span>production pipelines</span>
           </div>
           <div class="proof-stat">
-            <strong>0</strong>
+            <strong data-count="0">0</strong>
             <span>data loss</span>
           </div>
           <div class="proof-stat">
-            <strong>3</strong>
+            <strong data-count="3">3</strong>
             <span>Fortune 500 clients</span>
           </div>
         </div>
@@ -477,12 +488,21 @@ const schema = {
         </div>
       </section>
 
+      <div class="signal-ribbon" aria-hidden="true">
+        <div class="signal-ribbon-track">
+          <span>RAW SIGNAL</span><i></i><span>REPLAY</span><i></i><span>OBSERVE</span><i></i><span>QUALITY</span><i></i><span>TRUST</span><i></i>
+          <span>RAW SIGNAL</span><i></i><span>REPLAY</span><i></i><span>OBSERVE</span><i></i><span>QUALITY</span><i></i><span>TRUST</span><i></i>
+        </div>
+      </div>
+
       {
         projects.map((project, projectIndex) => (
           <section
             class:list={["project-chapter", `project-${project.id}`]}
             id={project.id}
             data-section="work"
+            data-motion-section
+            data-project-index={project.number}
           >
             <div class="grid-shell project-grid">
               <div class="project-meta" data-reveal>
@@ -526,6 +546,7 @@ const schema = {
                         : "Analytics interface showing revenue, quality, and pipeline-health signals"
                 }
                 data-reveal
+                data-tilt-surface
               >
                 {project.id === "lakehouse" && (
                   <div class="lakehouse-flow" aria-hidden="true">
@@ -615,22 +636,38 @@ const schema = {
         ))
       }
 
-      <section class="systems paper-section" id="systems" data-section="systems">
+      <section
+        class="systems signal-section"
+        id="systems"
+        data-section="systems"
+        data-bloom-section
+      >
         <div class="grid-shell systems-grid">
-          <div class="systems-heading" data-reveal>
-            <p class="chapter-label dark-label">04 / System ownership</p>
-            <h2>From ingestion to the trust layer.</h2>
-            <p>
+          <div class="systems-heading">
+            <p class="chapter-label dark-label" data-reveal>04 / System ownership</p>
+            <h2 data-reveal="heading">From ingestion to the trust layer.</h2>
+            <p data-reveal>
               The tools change. The responsibility stays the same: move data
               predictably, make failures observable, and leave a system easier
               to operate than it was before.
             </p>
+
+            <div class="bloom-stage" data-bloom-stage data-reveal>
+              <canvas id="trust-bloom" aria-hidden="true"></canvas>
+              <div class="bloom-core-copy" aria-hidden="true">
+                <span>TRUST LAYER</span>
+                <strong>LIVE</strong>
+              </div>
+              <div class="bloom-legend" aria-hidden="true">
+                <span>Compute</span><span>Move</span><span>Store</span><span>Trust</span>
+              </div>
+            </div>
           </div>
 
           <div class="capability-list">
             {
               capabilities.map((capability, index) => (
-                <article class="capability-row" data-reveal>
+                <article class="capability-row" data-reveal data-capability-index={index}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <p>{capability.label}</p>
                   <h3>{capability.title}</h3>
@@ -711,7 +748,15 @@ const schema = {
         </div>
       </section>
 
-      <section class="contact dark-section" id="contact" data-section="about">
+      <section
+        class="contact dark-section"
+        id="contact"
+        data-section="about"
+        data-motion-section
+      >
+        <div class="contact-signal" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
         <div class="grid-shell contact-grid">
           <div class="contact-status" data-reveal>
             <span class="status-dot" aria-hidden="true"></span>
