@@ -396,10 +396,14 @@ const schema = {
 
           <div class="hero-copy" data-reveal="hero">
             <p class="chapter-label">00 / Identity</p>
-            <h1>
-              <span>Aditya</span>
-              <span>Yadav</span>
+            <h1 class="hero-wordmark" aria-label="Aditya Yadav">
+              <span class="hero-word hero-word-primary" data-word="ADITYA">Aditya</span>
+              <span class="hero-word hero-word-outline" data-word="YADAV">Yadav</span>
             </h1>
+            <div class="hero-wordmark-meta" aria-hidden="true">
+              <span><i></i> ID / AY-97</span>
+              <b>Production data systems</b>
+            </div>
             <p class="hero-thesis">
               I turn complex data into systems teams can <em>trust.</em>
             </p>
@@ -507,7 +511,6 @@ const schema = {
               height="460"
               loading="lazy"
             />
-            <span class="portrait-scan" aria-hidden="true"></span>
             <figcaption>
               <span>Aditya Yadav</span>
               <span>Data Engineer / Builder</span>
@@ -815,19 +818,38 @@ const schema = {
             </p>
 
             <div class="bloom-stage" data-bloom-stage data-reveal data-tilt-surface>
+              <div class="bloom-depth-grid" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </div>
               <canvas id="trust-bloom" aria-hidden="true"></canvas>
+              <p class="sr-only">
+                Trust layer visualization with four processing layers, fifteen
+                quality gates, and a 99.99 percent service-level objective.
+              </p>
               <div class="bloom-telemetry" aria-hidden="true">
                 <span><i></i> 4 LAYERS</span>
                 <b>15 GATES</b>
               </div>
+              <div class="bloom-orbit-labels" aria-hidden="true">
+                <span>Ingest</span>
+                <span>Validate</span>
+                <span>Observe</span>
+                <span>Serve</span>
+              </div>
               <div class="bloom-core-copy" aria-hidden="true">
+                <i></i>
                 <span>TRUST LAYER</span>
                 <strong>LIVE</strong>
+                <small>99.99% SLO</small>
               </div>
               <div class="bloom-legend" aria-hidden="true">
                 <span>Compute</span><span>Move</span><span>Store</span><span>Trust</span>
               </div>
             </div>
+            <p class="bloom-stage-caption" data-reveal>
+              <span>Operational trust model</span>
+              <strong>Signals converge. Quality stays visible.</strong>
+            </p>
           </div>
 
           <div class="capability-list">
@@ -899,27 +921,69 @@ const schema = {
         <div class="grid-shell about-grid">
           <p class="chapter-label dark-label" data-reveal>06 / About</p>
           <div class="about-copy" data-reveal>
+            <p class="about-eyebrow"><Activity size={17} aria-hidden="true" /> Engineering operating system</p>
             <h2>Engineer the system. Explain the decision. <span class="kinetic-word">Own the outcome.</span></h2>
-            <p>
-              I am a Computer Science graduate specializing in Big Data
-              Analytics, now building and migrating enterprise data systems at
-              EPAM. I care about calm production rollouts, visible quality, and
-              automation that removes repetitive work instead of hiding it.
-            </p>
+            <div class="about-story">
+              <p>
+                I build data platforms that stay understandable when scale,
+                ownership, and production pressure all arrive together.
+              </p>
+              <p>
+                With a Computer Science foundation in Big Data Analytics, I now
+                build and migrate enterprise systems at EPAM. The standard is
+                simple: calm rollouts, visible quality, and automation that
+                removes repetitive work without hiding operational truth.
+              </p>
+            </div>
+            <div class="about-proof-line" aria-label="Engineering priorities">
+              <span><b>01</b> Replayable</span>
+              <span><b>02</b> Observable</span>
+              <span><b>03</b> Owned</span>
+            </div>
           </div>
+          <aside class="about-console" data-reveal aria-label="Engineering loop">
+            <div class="about-console-head">
+              <span><i></i> Engineering loop</span>
+              <b>Active</b>
+            </div>
+            <ol class="about-loop">
+              <li>
+                <span>01</span>
+                <strong>Observe</strong>
+                <small>Make state visible</small>
+              </li>
+              <li>
+                <span>02</span>
+                <strong>Decide</strong>
+                <small>Choose with evidence</small>
+              </li>
+              <li>
+                <span>03</span>
+                <strong>Deliver</strong>
+                <small>Own the result</small>
+              </li>
+            </ol>
+            <div class="about-console-track" aria-hidden="true">
+              <span></span><i></i><span></span><i></i><span></span>
+            </div>
+            <p>Signal <b>to</b> decision <b>to</b> dependable outcome</p>
+          </aside>
           <div class="principles" data-reveal>
             <article>
-              <Database size={22} aria-hidden="true" />
+              <div class="principle-top"><span>01</span><Database size={23} aria-hidden="true" /></div>
+              <small>Recovery</small>
               <h3>Design for replay</h3>
               <p>Idempotent paths make recovery a normal operation.</p>
             </article>
             <article>
-              <ShieldCheck size={22} aria-hidden="true" />
+              <div class="principle-top"><span>02</span><ShieldCheck size={23} aria-hidden="true" /></div>
+              <small>Quality</small>
               <h3>Trust is engineered</h3>
               <p>Quality gates belong inside the pipeline, not after it.</p>
             </article>
             <article>
-              <Sparkles size={22} aria-hidden="true" />
+              <div class="principle-top"><span>03</span><Sparkles size={23} aria-hidden="true" /></div>
+              <small>Leverage</small>
               <h3>Automate the drag</h3>
               <p>Remove manual steps where judgement is not required.</p>
             </article>

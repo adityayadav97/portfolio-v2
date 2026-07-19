@@ -86,6 +86,7 @@ type AnimatedLabel = {
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+const wrapProgress = (value: number) => ((value % 1) + 1) % 1;
 
 export class ThreeDataFlowScene {
   private canvas: HTMLCanvasElement;
@@ -708,7 +709,7 @@ export class ThreeDataFlowScene {
         glowMaterial.opacity = 0.045 + activity * 0.07;
         railMaterial.opacity = 0.64 + activity * 0.2;
         packets.forEach(({ mesh, offset, speed }, packetIndex) => {
-          const progress = (elapsed * speed + offset) % 1;
+          const progress = wrapProgress(elapsed * speed + offset);
           const point = curve.getPointAt(progress);
           mesh.position.copy(point);
           const tangent = curve.getTangentAt(Math.min(progress + 0.002, 1));
@@ -720,7 +721,7 @@ export class ThreeDataFlowScene {
 
     if (this.signalSweep) {
       const { group, curve, coreMaterial, haloMaterial, light } = this.signalSweep;
-      const progress = this.reducedMotion ? 0.72 : (elapsed * 0.105) % 1;
+      const progress = this.reducedMotion ? 0.72 : wrapProgress(elapsed * 0.105);
       const point = curve.getPointAt(progress);
       const tangent = curve.getTangentAt(Math.min(progress + 0.002, 1)).normalize();
       const pulse = this.reducedMotion ? 0.72 : 0.5 + Math.sin(elapsed * 3.2) * 0.5;

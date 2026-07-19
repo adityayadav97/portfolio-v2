@@ -348,11 +348,13 @@ function setupPortraitReveal() {
   const portrait = document.querySelector<HTMLElement>("[data-portrait]");
   if (!portrait) return;
 
+  portrait.querySelector<HTMLElement>(".portrait-scan")?.remove();
+
   let userPaused = false;
   let reducedMotion = reducedMotionQuery.matches;
   let queued = false;
 
-  const apply = (focusInput: number, travelProgress = 0.5) => {
+  const apply = (focusInput: number) => {
     const colorFocus = smoothstep(clamp(focusInput));
     const grayscale = 1 - colorFocus;
     portrait.style.setProperty("--portrait-gray", grayscale.toFixed(3));
@@ -367,10 +369,6 @@ function setupPortraitReveal() {
     portrait.style.setProperty("--portrait-line-y", `${(colorFocus * -6).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-focus", colorFocus.toFixed(3));
     portrait.style.setProperty("--portrait-scale", (1 + colorFocus * 0.035).toFixed(3));
-    portrait.style.setProperty(
-      "--portrait-scan-y",
-      `${(8 + clamp(travelProgress) * 84).toFixed(2)}%`,
-    );
     portrait.dataset.portraitFocus = colorFocus.toFixed(3);
   };
 
@@ -393,9 +391,6 @@ function setupPortraitReveal() {
     const centerDelta = portraitCenter - viewportCenter;
     const focusRange = Math.max(viewport * 0.58, bounds.height * 0.9, 1);
     const colorFocus = 1 - clamp(Math.abs(centerDelta) / focusRange);
-    const travelProgress = clamp(
-      (viewport - bounds.top) / Math.max(viewport + bounds.height, 1),
-    );
     const centerThreshold = focusRange * 0.08;
     portrait.dataset.portraitPhase =
       Math.abs(centerDelta) <= centerThreshold
@@ -407,7 +402,7 @@ function setupPortraitReveal() {
       "is-portrait-active",
       colorFocus > 0.3 && bounds.bottom > 0 && bounds.top < viewport,
     );
-    apply(colorFocus, travelProgress);
+    apply(colorFocus);
     queued = false;
   };
 
@@ -428,6 +423,266 @@ function setupPortraitReveal() {
     requestUpdate();
   });
   update();
+}
+
+type CursorEcho = {
+  element: HTMLSpanElement;
+  x: number;
+  y: number;
+  born: number;
+  active: boolean;
+};
+
+function setupPrecisionCursor() {
+  let unmount: (() => void) | null = null;
+
+  const mount = () => {
+    const controller = new AbortController();
+    const style = document.createElement("style");
+    style.dataset.precisionCursorStyle = "";
+    style.textContent = `
+      body.has-custom-cursor,
+      body.has-custom-cursor * { cursor: none !important; }
+      .cursor-system {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        overflow: hidden;
+        pointer-events: none !important;
+        opacity: 0;
+        contain: strict;
+      }
+      .cursor-dot,
+      .cursor-ring,
+      .cursor-echo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+        border-radius: 50%;
+        pointer-events: none !important;
+        will-change: transform, opacity;
+      }
+      .cursor-dot {
+        width: 7px;
+        height: 7px;
+        background: #f2f4f1;
+        box-shadow: 0 0 0 2px rgba(8, 11, 10, 0.42), 0 0 12px rgba(93, 214, 209, 0.78);
+      }
+      .cursor-ring {
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(93, 214, 209, 0.86);
+        background: radial-gradient(circle, rgba(93, 214, 209, 0.08), transparent 64%);
+        box-shadow: inset 0 0 0 1px rgba(8, 11, 10, 0.28), 0 0 18px rgba(64, 95, 174, 0.24);
+      }
+      .cursor-echo {
+        width: 14px;
+        height: 14px;
+        border: 1px solid rgba(93, 214, 209, 0.7);
+        opacity: 0;
+      }
+      .cursor-system.is-interactive .cursor-ring {
+        border-color: rgba(184, 216, 121, 0.96);
+        background: radial-gradient(circle, rgba(184, 216, 121, 0.12), transparent 66%);
+      }
+      .cursor-system.is-canvas .cursor-ring {
+        border-color: rgba(93, 214, 209, 1);
+        box-shadow: inset 0 0 0 1px rgba(64, 95, 174, 0.34), 0 0 22px rgba(93, 214, 209, 0.34);
+      }
+    `;
+
+    const root = document.createElement("div");
+    root.className = "cursor-system";
+    root.setAttribute("aria-hidden", "true");
+
+    const ring = document.createElement("span");
+    ring.className = "cursor-ring";
+    const point = document.createElement("span");
+    point.className = "cursor-dot";
+    const echoes: CursorEcho[] = Array.from({ length: 5 }, () => {
+      const element = document.createElement("span");
+      element.className = "cursor-echo";
+      root.append(element);
+      return { element, x: 0, y: 0, born: 0, active: false };
+    });
+    root.append(ring, point);
+    document.head.append(style);
+    document.body.append(root);
+    document.body.classList.add("has-custom-cursor");
+
+    let targetX = 0;
+    let targetY = 0;
+    let ringX = 0;
+    let ringY = 0;
+    let ringScale = 1;
+    let pointScale = 1;
+    let visible = false;
+    let pressed = false;
+    let overInteractive = false;
+    let overCanvas = false;
+    let echoIndex = 0;
+    let lastEchoTime = 0;
+    let lastEchoX = 0;
+    let lastEchoY = 0;
+    let frame = 0;
+
+    const transformAt = (x: number, y: number, scale: number) =>
+      `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) translate3d(-50%, -50%, 0) scale(${scale.toFixed(3)})`;
+
+    const requestFrame = () => {
+      if (!frame) frame = window.requestAnimationFrame(render);
+    };
+
+    const render = (time: number) => {
+      frame = 0;
+      ringX += (targetX - ringX) * 0.2;
+      ringY += (targetY - ringY) * 0.2;
+      const targetRingScale = (overCanvas ? 2 : overInteractive ? 1.58 : 1) * (pressed ? 0.78 : 1);
+      const targetPointScale = pressed ? 1.65 : overCanvas ? 1.16 : 1;
+      ringScale += (targetRingScale - ringScale) * 0.22;
+      pointScale += (targetPointScale - pointScale) * 0.28;
+
+      root.style.opacity = visible ? "1" : "0";
+      ring.style.transform = transformAt(ringX, ringY, ringScale);
+      point.style.transform = transformAt(targetX, targetY, pointScale);
+      ring.style.opacity = visible ? "0.94" : "0";
+      point.style.opacity = visible ? "1" : "0";
+
+      let hasActiveEcho = false;
+      echoes.forEach((echo) => {
+        if (!echo.active) return;
+        const life = clamp((time - echo.born) / 280);
+        if (life >= 1) {
+          echo.active = false;
+          echo.element.style.opacity = "0";
+          return;
+        }
+        hasActiveEcho = true;
+        echo.element.style.opacity = (0.34 * (1 - life) ** 2).toFixed(3);
+        echo.element.style.transform = transformAt(echo.x, echo.y, 0.55 + life * 1.35);
+      });
+
+      const unsettled =
+        Math.abs(targetX - ringX) > 0.08 ||
+        Math.abs(targetY - ringY) > 0.08 ||
+        Math.abs(targetRingScale - ringScale) > 0.004 ||
+        Math.abs(targetPointScale - pointScale) > 0.004;
+      if (hasActiveEcho || unsettled) requestFrame();
+    };
+
+    const setContext = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      overInteractive = Boolean(
+        target?.closest(
+          'a, button, input, select, textarea, summary, [role="button"], [data-tilt-surface]',
+        ),
+      );
+      overCanvas = document
+        .elementsFromPoint(event.clientX, event.clientY)
+        .some((element) => element instanceof HTMLCanvasElement);
+      root.classList.toggle("is-interactive", overInteractive || overCanvas);
+      root.classList.toggle("is-canvas", overCanvas);
+    };
+
+    const addEcho = (time: number) => {
+      const distance = Math.hypot(targetX - lastEchoX, targetY - lastEchoY);
+      if (time - lastEchoTime < 42 || distance < 9) return;
+      const echo = echoes[echoIndex];
+      echoIndex = (echoIndex + 1) % echoes.length;
+      echo.x = ringX;
+      echo.y = ringY;
+      echo.born = time;
+      echo.active = true;
+      lastEchoTime = time;
+      lastEchoX = targetX;
+      lastEchoY = targetY;
+    };
+
+    const show = (event: PointerEvent) => {
+      if (event.pointerType && event.pointerType !== "mouse") return;
+      const firstMove = !visible;
+      targetX = event.clientX;
+      targetY = event.clientY;
+      if (firstMove) {
+        ringX = targetX;
+        ringY = targetY;
+        lastEchoX = targetX;
+        lastEchoY = targetY;
+      } else {
+        addEcho(performance.now());
+      }
+      visible = true;
+      setContext(event);
+      requestFrame();
+    };
+
+    const hide = () => {
+      visible = false;
+      pressed = false;
+      root.classList.remove("is-pressed", "is-interactive", "is-canvas");
+      requestFrame();
+    };
+
+    document.addEventListener("pointermove", show, { passive: true, signal: controller.signal });
+    document.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (event.pointerType && event.pointerType !== "mouse") return;
+        pressed = true;
+        root.classList.add("is-pressed");
+        requestFrame();
+      },
+      { passive: true, signal: controller.signal },
+    );
+    document.addEventListener(
+      "pointerup",
+      () => {
+        pressed = false;
+        root.classList.remove("is-pressed");
+        requestFrame();
+      },
+      { passive: true, signal: controller.signal },
+    );
+    document.addEventListener(
+      "pointerout",
+      (event) => {
+        if (!event.relatedTarget) hide();
+      },
+      { passive: true, signal: controller.signal },
+    );
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) hide();
+    }, { signal: controller.signal });
+    window.addEventListener("blur", hide, { signal: controller.signal });
+
+    return () => {
+      controller.abort();
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      document.body.classList.remove("has-custom-cursor");
+      root.remove();
+      style.remove();
+    };
+  };
+
+  const sync = () => {
+    const enabled = finePointerQuery.matches && !reducedMotionQuery.matches;
+    if (enabled && !unmount) unmount = mount();
+    if (!enabled && unmount) {
+      unmount();
+      unmount = null;
+    }
+  };
+
+  finePointerQuery.addEventListener("change", sync);
+  reducedMotionQuery.addEventListener("change", sync);
+  window.addEventListener("pagehide", () => {
+    unmount?.();
+    unmount = null;
+  });
+  window.addEventListener("pageshow", sync);
+  sync();
 }
 
 function setupScrollMonitor() {
@@ -1146,6 +1401,12 @@ class TrustBloomScene {
     reducedMotionQuery.addEventListener("change", (event) => {
       this.reducedMotion = event.matches;
       this.progress = event.matches ? 1 : this.progress;
+      if (event.matches) {
+        this.pointer.targetX = 0;
+        this.pointer.targetY = 0;
+        this.pointer.x = 0;
+        this.pointer.y = 0;
+      }
       this.draw(performance.now());
       this.updateLoop();
     });
@@ -1164,9 +1425,18 @@ class TrustBloomScene {
 
     if (finePointerQuery.matches) {
       this.stage.addEventListener("pointermove", (event) => {
+        if (this.reducedMotion) return;
         const bounds = this.stage.getBoundingClientRect();
-        this.pointer.targetX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 16;
-        this.pointer.targetY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 16;
+        this.pointer.targetX = clamp(
+          ((event.clientX - bounds.left) / Math.max(bounds.width, 1) - 0.5) * 2,
+          -1,
+          1,
+        );
+        this.pointer.targetY = clamp(
+          ((event.clientY - bounds.top) / Math.max(bounds.height, 1) - 0.5) * 2,
+          -1,
+          1,
+        );
       });
       this.stage.addEventListener("pointerleave", () => {
         this.pointer.targetX = 0;
@@ -1211,32 +1481,98 @@ class TrustBloomScene {
 
   private tick(time: number) {
     this.frame = 0;
-    this.pointer.x += (this.pointer.targetX - this.pointer.x) * 0.055;
-    this.pointer.y += (this.pointer.targetY - this.pointer.y) * 0.055;
+    this.pointer.x += (this.pointer.targetX - this.pointer.x) * 0.07;
+    this.pointer.y += (this.pointer.targetY - this.pointer.y) * 0.07;
     this.draw(time);
     if (this.shouldAnimate()) {
       this.frame = window.requestAnimationFrame((nextTime) => this.tick(nextTime));
     }
   }
 
-  private drawGrid() {
+  private drawGrid(offsetX: number, offsetY: number) {
     const context = this.context;
     context.save();
-    context.strokeStyle = "rgba(242, 244, 241, 0.07)";
+    context.translate(offsetX, offsetY);
+    context.strokeStyle = "rgba(93, 214, 209, 0.075)";
     context.lineWidth = 1;
     const step = this.width < 380 ? 28 : 34;
-    for (let x = 0.5; x < this.width; x += step) {
+    for (let x = -step + 0.5; x < this.width + step; x += step) {
       context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, this.height);
+      context.moveTo(x, -step);
+      context.lineTo(x, this.height + step);
       context.stroke();
     }
-    for (let y = 0.5; y < this.height; y += step) {
+    for (let y = -step + 0.5; y < this.height + step; y += step) {
       context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(this.width, y);
+      context.moveTo(-step, y);
+      context.lineTo(this.width + step, y);
       context.stroke();
     }
+
+    const vanishingX = this.width * 0.5;
+    const vanishingY = this.height * 0.47;
+    context.strokeStyle = "rgba(64, 95, 174, 0.09)";
+    for (let index = -4; index <= 4; index += 1) {
+      context.beginPath();
+      context.moveTo(vanishingX, vanishingY);
+      context.lineTo(vanishingX + index * this.width * 0.21, this.height + step);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  private drawDepthPlane(
+    radius: number,
+    depth: number,
+    rotation: number,
+    stroke: string,
+    fill: string,
+    parallaxX: number,
+    parallaxY: number,
+  ) {
+    const context = this.context;
+    const chamfer = radius * 0.22;
+    context.save();
+    context.translate(parallaxX * depth * 10, parallaxY * depth * 8);
+    context.rotate(rotation);
+    context.scale(1, 0.58 + depth * 0.08);
+    context.beginPath();
+    context.moveTo(-radius + chamfer, -radius);
+    context.lineTo(radius - chamfer, -radius);
+    context.lineTo(radius, -radius + chamfer);
+    context.lineTo(radius, radius - chamfer);
+    context.lineTo(radius - chamfer, radius);
+    context.lineTo(-radius + chamfer, radius);
+    context.lineTo(-radius, radius - chamfer);
+    context.lineTo(-radius, -radius + chamfer);
+    context.closePath();
+    context.fillStyle = fill;
+    context.fill();
+    context.strokeStyle = stroke;
+    context.lineWidth = 1;
+    context.stroke();
+    context.restore();
+  }
+
+  private drawOrbit(
+    radius: number,
+    yScale: number,
+    rotation: number,
+    color: string,
+    alpha: number,
+    dashed = false,
+  ) {
+    const context = this.context;
+    context.save();
+    context.rotate(rotation);
+    context.scale(1, yScale);
+    context.globalAlpha = alpha;
+    context.strokeStyle = color;
+    context.lineWidth = 1;
+    context.setLineDash(dashed ? [2, 7] : []);
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.stroke();
     context.restore();
   }
 
@@ -1290,19 +1626,75 @@ class TrustBloomScene {
         : (time - this.startTime) / 1000;
     const open = this.reducedMotion ? 1 : easeOutCubic(clamp(this.progress * 1.22 + 0.04));
     const minSize = Math.min(this.width, this.height);
-    const centerX = this.width / 2 + this.pointer.x;
-    const centerY = this.height / 2 - minSize * 0.035 + this.pointer.y;
-    const outerRadius = minSize * (0.2 + open * 0.23);
-    const colors = [visualPalette.blue, visualPalette.live];
+    const parallaxX = this.reducedMotion ? 0 : this.pointer.x;
+    const parallaxY = this.reducedMotion ? 0 : this.pointer.y;
+    const centerX = this.width / 2 + parallaxX * minSize * 0.018;
+    const centerY = this.height / 2 - minSize * 0.035 + parallaxY * minSize * 0.014;
+    const outerRadius = minSize * (0.2 + open * 0.225);
+    const cyan = "#5dd6d1";
+    const cobalt = visualPalette.blue;
+    const phosphor = visualPalette.live;
+    const colors = [cyan, cobalt, phosphor];
 
     context.clearRect(0, 0, this.width, this.height);
     context.fillStyle = visualPalette.void;
     context.fillRect(0, 0, this.width, this.height);
-    this.drawGrid();
+    const ambientGlow = context.createRadialGradient(
+      centerX,
+      centerY,
+      minSize * 0.04,
+      centerX,
+      centerY,
+      minSize * 0.62,
+    );
+    ambientGlow.addColorStop(0, "rgba(64, 95, 174, 0.18)");
+    ambientGlow.addColorStop(0.48, "rgba(93, 214, 209, 0.055)");
+    ambientGlow.addColorStop(1, "rgba(8, 11, 10, 0)");
+    context.fillStyle = ambientGlow;
+    context.fillRect(0, 0, this.width, this.height);
+    this.drawGrid(parallaxX * 5, parallaxY * 4);
 
     context.save();
     context.translate(centerX, centerY);
-    context.rotate(elapsed * 0.045 + open * 0.18);
+
+    const planeColors = [
+      ["rgba(64, 95, 174, 0.34)", "rgba(64, 95, 174, 0.025)"],
+      ["rgba(93, 214, 209, 0.3)", "rgba(93, 214, 209, 0.022)"],
+      ["rgba(184, 216, 121, 0.26)", "rgba(184, 216, 121, 0.018)"],
+    ] as const;
+    for (let layer = 0; layer < planeColors.length; layer += 1) {
+      const depth = (layer + 1) / planeColors.length;
+      this.drawDepthPlane(
+        outerRadius * (0.48 + layer * 0.2),
+        depth,
+        elapsed * (0.014 + layer * 0.006) + layer * 0.26 + parallaxX * 0.05,
+        planeColors[layer][0],
+        planeColors[layer][1],
+        parallaxX,
+        parallaxY,
+      );
+    }
+
+    this.drawOrbit(outerRadius * 1.02, 0.58, elapsed * 0.026 + parallaxX * 0.08, cyan, 0.34, true);
+    this.drawOrbit(
+      outerRadius * 0.82,
+      0.72,
+      -elapsed * 0.038 + 1.04 + parallaxY * 0.06,
+      cobalt,
+      0.5,
+    );
+    this.drawOrbit(
+      outerRadius * 0.62,
+      0.88,
+      elapsed * 0.052 - 0.72,
+      phosphor,
+      0.44,
+      true,
+    );
+
+    context.save();
+    context.rotate(elapsed * 0.045 + open * 0.18 + parallaxX * 0.035);
+    context.scale(1, 0.88);
 
     const outerPetals = 12;
     for (let index = 0; index < outerPetals; index += 1) {
@@ -1313,11 +1705,14 @@ class TrustBloomScene {
         outerRadius * alternating,
         minSize * (0.035 + open * 0.022),
         colors[index % colors.length],
-        0.1 + open * 0.08,
+        0.08 + open * 0.07,
       );
     }
+    context.restore();
 
-    context.rotate(-elapsed * 0.09 - 0.2);
+    context.save();
+    context.rotate(-elapsed * 0.09 - 0.2 - parallaxY * 0.04);
+    context.scale(1, 0.94);
     const innerPetals = 8;
     for (let index = 0; index < innerPetals; index += 1) {
       const angle = (Math.PI * 2 * index) / innerPetals + Math.PI / innerPetals;
@@ -1325,52 +1720,135 @@ class TrustBloomScene {
         angle,
         outerRadius * 0.58,
         minSize * (0.028 + open * 0.018),
-        colors[(index + 2) % colors.length],
+        colors[(index + 1) % colors.length],
         0.16 + open * 0.1,
       );
     }
+    context.restore();
 
-    context.globalAlpha = 0.68;
-    context.strokeStyle = visualPalette.paper;
+    context.globalAlpha = 0.32 + open * 0.26;
+    context.strokeStyle = "rgba(242, 244, 241, 0.82)";
     context.lineWidth = 1;
     context.setLineDash([2, 7]);
     [0.52, 0.78, 1].forEach((ratio) => {
       context.beginPath();
-      context.arc(0, 0, outerRadius * ratio, 0, Math.PI * 2);
+      context.ellipse(0, 0, outerRadius * ratio, outerRadius * ratio * 0.72, 0, 0, Math.PI * 2);
       context.stroke();
     });
     context.setLineDash([]);
 
-    const packetCount = this.width < 380 ? 10 : 16;
+    const packetCount = this.width < 380 ? 14 : 20;
+    context.globalCompositeOperation = "lighter";
     for (let index = 0; index < packetCount; index += 1) {
-      const angle = (Math.PI * 2 * (index % outerPetals)) / outerPetals;
-      const travel = this.reducedMotion
-        ? 0.66
-        : (elapsed * (0.12 + (index % 4) * 0.018) + index / packetCount) % 1;
-      const radius = outerRadius * (0.14 + travel * 0.92) * open;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const size = index % 5 === 0 ? 6 : 4;
-      context.globalAlpha = 0.95;
+      const layer = index % 3;
+      const radius = outerRadius * (0.54 + layer * 0.22) * open;
+      const yScale = 0.58 + layer * 0.14;
+      const direction = layer === 1 ? -1 : 1;
+      const angle =
+        direction * elapsed * (0.24 + layer * 0.045) +
+        (Math.PI * 2 * index) / packetCount +
+        layer * 0.42;
+      const x = Math.cos(angle) * radius + parallaxX * layer * 2.2;
+      const y = Math.sin(angle) * radius * yScale + parallaxY * layer * 1.8;
+      const tailAngle = angle - direction * 0.075;
+      const tailX = Math.cos(tailAngle) * radius + parallaxX * layer * 2.2;
+      const tailY = Math.sin(tailAngle) * radius * yScale + parallaxY * layer * 1.8;
+      context.globalAlpha = 0.28 + layer * 0.12;
+      context.strokeStyle = colors[index % colors.length];
+      context.beginPath();
+      context.moveTo(tailX, tailY);
+      context.lineTo(x, y);
+      context.stroke();
+      const size = index % 5 === 0 ? 5.5 : 3.5;
+      context.globalAlpha = 0.9;
       context.fillStyle = colors[index % colors.length];
       context.fillRect(x - size / 2, y - size / 2, size, size);
     }
 
-    context.globalAlpha = 1;
-    context.fillStyle = visualPalette.blue;
-    context.fillRect(-37, -37, 74, 74);
-    context.fillStyle = "#27362f";
-    context.fillRect(-31, -31, 62, 62);
-    context.fillStyle = visualPalette.void;
-    context.fillRect(-25, -25, 50, 50);
+    const radialPackets = this.width < 380 ? 6 : 9;
+    for (let index = 0; index < radialPackets; index += 1) {
+      const angle = (Math.PI * 2 * index) / radialPackets + 0.2;
+      const travel = this.reducedMotion
+        ? 0.58
+        : (elapsed * (0.1 + (index % 3) * 0.018) + index / radialPackets) % 1;
+      const radius = outerRadius * (0.94 - travel * 0.68) * open;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius * 0.82;
+      context.globalAlpha = 0.3 + travel * 0.55;
+      context.fillStyle = colors[(index + 1) % colors.length];
+      context.save();
+      context.translate(x, y);
+      context.rotate(angle + Math.PI / 4);
+      context.fillRect(-2.5, -2.5, 5, 5);
+      context.restore();
+    }
+    context.globalCompositeOperation = "source-over";
+
+    const pulse = this.reducedMotion ? 1 : 0.94 + Math.sin(elapsed * 1.8) * 0.06;
+    const halo = context.createRadialGradient(0, 0, 4, 0, 0, minSize * 0.2);
+    halo.addColorStop(0, "rgba(93, 214, 209, 0.28)");
+    halo.addColorStop(0.5, "rgba(64, 95, 174, 0.12)");
+    halo.addColorStop(1, "rgba(8, 11, 10, 0)");
+    context.globalAlpha = open;
+    context.fillStyle = halo;
+    context.beginPath();
+    context.arc(0, 0, minSize * 0.2 * pulse, 0, Math.PI * 2);
+    context.fill();
+
+    const coreSize = minSize * 0.245;
+    const coreLayers = [
+      { offset: 10, fill: "rgba(64, 95, 174, 0.34)", stroke: cobalt },
+      { offset: 5, fill: "rgba(93, 214, 209, 0.16)", stroke: cyan },
+      { offset: 0, fill: "rgba(8, 11, 10, 0.96)", stroke: phosphor },
+    ];
+    coreLayers.forEach((layer, index) => {
+      const inset = index * 7;
+      context.globalAlpha = 0.78 + index * 0.1;
+      context.fillStyle = layer.fill;
+      context.strokeStyle = layer.stroke;
+      context.lineWidth = 1;
+      context.fillRect(
+        -coreSize / 2 + inset + layer.offset,
+        -coreSize / 2 + inset + layer.offset * 0.68,
+        coreSize - inset * 2,
+        coreSize - inset * 2,
+      );
+      context.strokeRect(
+        -coreSize / 2 + inset + layer.offset,
+        -coreSize / 2 + inset + layer.offset * 0.68,
+        coreSize - inset * 2,
+        coreSize - inset * 2,
+      );
+    });
+
+    context.globalAlpha = 0.76;
+    context.strokeStyle = cyan;
+    context.lineWidth = 1;
+    const bracket = coreSize * 0.72;
+    const corner = 10;
+    [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ].forEach(([xDirection, yDirection]) => {
+      const x = (bracket / 2) * xDirection;
+      const y = (bracket / 2) * yDirection;
+      context.beginPath();
+      context.moveTo(x - corner * xDirection, y);
+      context.lineTo(x, y);
+      context.lineTo(x, y - corner * yDirection);
+      context.stroke();
+    });
     context.restore();
 
     context.save();
-    context.fillStyle = "rgba(242, 244, 241, 0.58)";
+    context.fillStyle = "rgba(242, 244, 241, 0.62)";
     context.font = "11px IBM Plex Mono, monospace";
-    context.fillText("SIGNAL / BLOOM", 14, 22);
+    context.fillText("TRUST CORE / 03D", 14, 22);
     context.textAlign = "right";
-    context.fillText(`${Math.round(open * 100)}% OPEN`, this.width - 14, 22);
+    context.fillStyle = phosphor;
+    context.fillText(`${Math.round(open * 100)}% SYNC`, this.width - 14, 22);
     context.restore();
   }
 }
@@ -1431,6 +1909,7 @@ setupActiveNavigation();
 setupCounters();
 setupMotionSections();
 setupPortraitReveal();
+setupPrecisionCursor();
 setupScrollMonitor();
 setupExperienceSpotlight();
 setupContactActions();

@@ -81,9 +81,9 @@ test("premium scroll hooks and experience hierarchy ship in production", () => {
   assert.match(css, /\.experience-row\.is-experience-active/);
   assert.match(css, /--section-progress/);
   assert.match(html, /data-portrait/);
-  assert.match(html, /class="portrait-scan"/);
+  assert.doesNotMatch(html, /portrait-scan/);
   assert.match(css, /--portrait-gray/);
-  assert.match(css, /\.portrait-scan/);
+  assert.doesNotMatch(css, /\.portrait-scan/);
   assert.match(js, /portraitPhase/);
   assert.match(css, /telemetry-scan/);
 });
@@ -113,8 +113,11 @@ test("featured project and cinematic interaction hooks ship in production", () =
 
 test("dimensional visual system and compact systems layout ship in production", () => {
   assert.match(html, /class="hero-depth-hud"/);
+  assert.match(html, /class="hero-wordmark"/);
   assert.match(html, /class="flow-runline"/);
   assert.match(html, /class="bloom-telemetry"/);
+  assert.match(html, /class="bloom-depth-grid"/);
+  assert.match(html, /class="about-console"/);
   assert.match(js, /ThreeDataFlowScene/);
   assert.match(js, /animatedLabels/);
   assert.match(js, /signalSweep/);
