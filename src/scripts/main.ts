@@ -1362,7 +1362,7 @@ async function setupDataFlow() {
   if (!canvas) return;
   let fallbackCanvas = canvas;
 
-  if (!reducedMotionQuery.matches && window.innerWidth > 680) {
+  if (!reducedMotionQuery.matches && window.innerWidth > 1180) {
     try {
       const { ThreeDataFlowScene } = await import("./three-flow");
       new ThreeDataFlowScene(canvas);

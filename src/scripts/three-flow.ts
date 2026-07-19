@@ -53,6 +53,14 @@ type Route = {
   packets: Packet[];
 };
 
+type AnimatedLabel = {
+  sprite: Sprite;
+  material: SpriteMaterial;
+  baseScale: Vector3;
+  baseY: number;
+  phase: number;
+};
+
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 
@@ -65,9 +73,12 @@ export class ThreeDataFlowScene {
   private rings = new Group();
   private shards = new Group();
   private routes: Route[] = [];
+  private animatedLabels: AnimatedLabel[] = [];
   private frame = 0;
   private width = 1;
   private height = 1;
+  private sceneInset = 0;
+  private sceneWidth = 1;
   private visible = true;
   private pageVisible = !document.hidden;
   private reducedMotion = reducedMotionQuery.matches;
@@ -108,27 +119,27 @@ export class ThreeDataFlowScene {
     this.scene.add(keyLight);
 
     const trustLight = new PointLight(COLORS.phosphor, 13, 8, 2);
-    trustLight.position.set(11.1, 0.2, 1.7);
+    trustLight.position.set(8.8, 0.2, 1.7);
     this.scene.add(trustLight);
 
     const backGrid = new GridHelper(22, 22, COLORS.cyan, 0x263532);
     backGrid.rotation.x = Math.PI / 2;
-    backGrid.position.set(4.4, 0, -1.45);
+    backGrid.position.set(3.7, 0, -1.45);
     this.tuneGrid(backGrid, 0.16);
     this.stage.add(backGrid);
 
     const floorGrid = new GridHelper(26, 26, COLORS.cobalt, 0x24302c);
-    floorGrid.position.set(4.4, -3.1, 0.8);
+    floorGrid.position.set(3.7, -3.1, 0.8);
     this.tuneGrid(floorGrid, 0.2);
     this.stage.add(floorGrid);
 
-    const sourceTop = new Vector3(0, 2.15, 0.15);
+    const sourceTop = new Vector3(0, 1.8, 0.15);
     const sourceMid = new Vector3(0, 0, 0.3);
-    const sourceBottom = new Vector3(0, -2.15, 0.15);
-    const ingest = new Vector3(2.35, 0, 0.45);
-    const transform = new Vector3(4.55, 0, 0.55);
-    const quality = new Vector3(6.75, 0, 0.7);
-    const warehouse = new Vector3(9, 0, 0.95);
+    const sourceBottom = new Vector3(0, -1.8, 0.15);
+    const ingest = new Vector3(2, 0, 0.45);
+    const transform = new Vector3(3.75, 0, 0.55);
+    const quality = new Vector3(5.5, 0, 0.7);
+    const warehouse = new Vector3(7.35, 0, 0.95);
 
     this.addNode(sourceTop, "SRC 01", "ORDERS", false, COLORS.cyan);
     this.addNode(sourceMid, "SOURCE", "3 FEEDS", false, COLORS.cyan);
@@ -139,13 +150,13 @@ export class ThreeDataFlowScene {
     this.addNode(warehouse, "WAREHOUSE", "SLA HEALTHY", true, COLORS.phosphor);
 
     this.addRoute(
-      [sourceTop, new Vector3(1.1, 2.1, 0.2), ingest],
+      [sourceTop, new Vector3(0.95, 1.76, 0.2), ingest],
       COLORS.cyan,
       2,
     );
     this.addRoute([sourceMid, ingest], COLORS.cobalt, 2);
     this.addRoute(
-      [sourceBottom, new Vector3(1.1, -2.05, 0.2), ingest],
+      [sourceBottom, new Vector3(0.95, -1.76, 0.2), ingest],
       COLORS.magenta,
       2,
     );
@@ -182,7 +193,7 @@ export class ThreeDataFlowScene {
       metalness: 0.28,
       roughness: 0.64,
     });
-    const body = new Mesh(new BoxGeometry(1.72, 0.82, 0.5), bodyMaterial);
+    const body = new Mesh(new BoxGeometry(1.88, 0.9, 0.5), bodyMaterial);
     group.add(body);
 
     const edges = new LineSegments(
@@ -200,12 +211,19 @@ export class ThreeDataFlowScene {
       new BoxGeometry(0.1, 0.1, 0.08),
       new MeshBasicMaterial({ color: active ? COLORS.void : accent }),
     );
-    status.position.set(-0.68, 0.26, 0.3);
+    status.position.set(-0.75, 0.29, 0.3);
     group.add(status);
 
     const label = this.makeLabel(title, meta, active);
     label.position.set(0.05, -0.02, 0.31);
     group.add(label);
+    this.animatedLabels.push({
+      sprite: label,
+      material: label.material,
+      baseScale: label.scale.clone(),
+      baseY: label.position.y,
+      phase: this.animatedLabels.length * 0.72,
+    });
 
     if (active) {
       const halo = new LineSegments(
@@ -224,8 +242,8 @@ export class ThreeDataFlowScene {
 
   private makeLabel(title: string, meta: string, active: boolean) {
     const labelCanvas = document.createElement("canvas");
-    labelCanvas.width = 512;
-    labelCanvas.height = 160;
+    labelCanvas.width = 768;
+    labelCanvas.height = 240;
     const context = labelCanvas.getContext("2d");
     if (!context) throw new Error("Unable to create node label texture");
 
@@ -233,11 +251,14 @@ export class ThreeDataFlowScene {
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = active ? "#101513" : "#f2f4f1";
-    context.font = "600 34px IBM Plex Mono, monospace";
-    context.fillText(title, 256, 62);
-    context.fillStyle = active ? "rgba(16,21,19,.72)" : "rgba(194,207,201,.78)";
-    context.font = "500 20px IBM Plex Mono, monospace";
-    context.fillText(meta, 256, 111);
+    context.shadowColor = active ? "rgba(16,21,19,.18)" : "rgba(93,214,209,.7)";
+    context.shadowBlur = active ? 2 : 10;
+    context.font = "700 78px IBM Plex Mono, monospace";
+    context.fillText(title, 384, 78);
+    context.shadowBlur = 0;
+    context.fillStyle = active ? "rgba(16,21,19,.78)" : "rgba(220,231,226,.9)";
+    context.font = "600 44px IBM Plex Mono, monospace";
+    context.fillText(meta, 384, 166);
 
     const texture = new CanvasTexture(labelCanvas);
     texture.colorSpace = SRGBColorSpace;
@@ -245,7 +266,7 @@ export class ThreeDataFlowScene {
     const sprite = new Sprite(
       new SpriteMaterial({ map: texture, transparent: true, depthTest: false }),
     );
-    sprite.scale.set(1.5, 0.47, 1);
+    sprite.scale.set(2.12, 1, 1);
     sprite.renderOrder = 20;
     return sprite;
   }
@@ -313,7 +334,7 @@ export class ThreeDataFlowScene {
     const count = 72;
     for (let index = 0; index < count; index += 1) {
       positions.push(
-        -1.2 + ((index * 1.71) % 12.8),
+        -1.2 + ((index * 1.71) % 10.2),
         -3.5 + ((index * 2.37) % 7),
         -1.9 + ((index * 0.83) % 3.2),
       );
@@ -347,7 +368,7 @@ export class ThreeDataFlowScene {
         }),
       );
       shard.position.set(
-        -0.8 + ((index * 1.41) % 11.5),
+        -0.8 + ((index * 1.41) % 9.2),
         -2.8 + ((index * 1.83) % 5.6),
         -0.6 + ((index * 0.57) % 2),
       );
@@ -422,16 +443,23 @@ export class ThreeDataFlowScene {
     const bounds = this.canvas.getBoundingClientRect();
     this.width = Math.max(1, bounds.width);
     this.height = Math.max(1, bounds.height);
-    const mobile = this.width <= 700;
-    const tablet = this.width <= 1100;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.15 : 1.4));
+    const compactDesktop = this.width < 1380;
+    const insetRatio = compactDesktop ? 0.6 : 0.58;
+    this.sceneInset = Math.round(this.width * insetRatio);
+    this.sceneWidth = Math.max(1, this.width - this.sceneInset);
+    this.canvas.dataset.sceneZone = "right";
+    this.canvas.dataset.sceneStart = String(this.sceneInset);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
     this.renderer.setSize(this.width, this.height, false);
-    this.camera.aspect = this.width / this.height;
-    this.camera.position.set(mobile ? 4.2 : 1.2, mobile ? 3.6 : 4.8, mobile ? 25 : 17);
-    this.camera.lookAt(mobile ? 4.3 : 5.5, mobile ? -2.2 : -0.1, 0);
+    this.renderer.setViewport(this.sceneInset, 0, this.sceneWidth, this.height);
+    this.renderer.setScissor(this.sceneInset, 0, this.sceneWidth, this.height);
+    this.renderer.setScissorTest(true);
+    this.camera.aspect = this.sceneWidth / this.height;
+    this.camera.position.set(3.75, 4.1, compactDesktop ? 19.5 : 18.5);
+    this.camera.lookAt(3.72, -0.12, 0);
     this.camera.updateProjectionMatrix();
-    this.stage.scale.setScalar(mobile ? 0.66 : tablet ? 0.86 : 1);
-    this.stage.position.set(mobile ? 0 : tablet ? 1.1 : 2.05, mobile ? -2.75 : -0.5, 0);
+    this.stage.scale.setScalar(compactDesktop ? 0.84 : 0.9);
+    this.stage.position.set(0, -0.28, 0);
     this.render(performance.now());
   }
 
@@ -483,6 +511,26 @@ export class ThreeDataFlowScene {
     this.rings.rotation.x = elapsed * 0.11;
     this.rings.rotation.y = elapsed * -0.08;
     this.shards.rotation.z = elapsed * 0.018;
+
+    this.animatedLabels.forEach(
+      ({ sprite, material, baseScale, baseY, phase }, index) => {
+        const revealProgress = this.reducedMotion
+          ? 1
+          : Math.min(1, Math.max(0, (elapsed - index * 0.11) / 0.72));
+        const reveal = 1 - (1 - revealProgress) ** 3;
+        const pulse = this.reducedMotion ? 1 : 1 + Math.sin(elapsed * 1.65 + phase) * 0.04;
+        sprite.scale.set(
+          baseScale.x * reveal * pulse,
+          baseScale.y * reveal * (2 - pulse),
+          1,
+        );
+        sprite.position.y =
+          baseY + (this.reducedMotion ? 0 : Math.sin(elapsed * 1.25 + phase) * 0.035);
+        material.opacity = this.reducedMotion
+          ? 1
+          : 0.9 + Math.sin(elapsed * 1.65 + phase) * 0.1;
+      },
+    );
 
     this.routes.forEach(({ curve, packets }) => {
       packets.forEach(({ mesh, offset, speed }, packetIndex) => {

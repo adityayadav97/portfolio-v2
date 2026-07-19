@@ -113,6 +113,9 @@ test("dimensional visual system and compact systems layout ship in production", 
   assert.match(html, /class="flow-runline"/);
   assert.match(html, /class="bloom-telemetry"/);
   assert.match(js, /ThreeDataFlowScene/);
+  assert.match(js, /animatedLabels/);
+  assert.match(js, /sceneZone/);
+  assert.match(js, /setScissor/);
   assert.match(js, /cloneNode/);
   assert.doesNotMatch(css, /min-height:130svh/);
   assert.match(css, /--electric-cyan/);

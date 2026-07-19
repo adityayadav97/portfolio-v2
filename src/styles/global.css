@@ -278,6 +278,16 @@ svg {
   pointer-events: none;
 }
 
+@media (min-width: 1181px) {
+  #data-flow {
+    clip-path: inset(0 0 0 58%);
+  }
+
+  .hero-thesis {
+    max-width: 52vw;
+  }
+}
+
 .hero-depth-hud {
   position: absolute;
   inset: 0;
