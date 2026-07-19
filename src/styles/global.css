@@ -732,13 +732,14 @@ body.motion-paused *::after {
 }
 
 .portrait {
-  --portrait-gray: 0;
-  --portrait-saturation: 1.1;
-  --portrait-contrast: 1.04;
+  --portrait-gray: 1;
+  --portrait-saturation: 0.86;
+  --portrait-contrast: 1.1;
   --portrait-frame-x: 0px;
   --portrait-frame-y: 0px;
   --portrait-line-x: 0px;
   --portrait-line-y: 0px;
+  --portrait-scan-y: 8%;
   grid-column: 10 / 13;
   align-self: end;
   margin: 0;
@@ -2027,6 +2028,27 @@ footer {
 .portrait figcaption {
   position: relative;
   z-index: 1;
+}
+
+.portrait-scan {
+  position: absolute;
+  top: var(--portrait-scan-y);
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    rgba(93, 214, 209, 0.82) 22%,
+    rgba(242, 244, 241, 0.9) 50%,
+    rgba(184, 216, 121, 0.74) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgba(93, 214, 209, 0.42);
+  opacity: calc(0.12 + var(--portrait-focus) * 0.5);
+  pointer-events: none;
+  transition: top 90ms linear, opacity 140ms linear;
 }
 
 .experience-row {
@@ -4138,7 +4160,7 @@ footer {
 
 .portrait {
   --portrait-focus: 0;
-  --portrait-scale: 1.035;
+  --portrait-scale: 1;
 }
 
 .portrait img {
@@ -5866,4 +5888,26 @@ body.at-project .scroll-monitor {
 .stream-flow {
   position: relative;
   z-index: 2;
+}
+
+/* Precision readability pass for technical captions that escaped the main type lock. */
+.hero-depth-readout,
+.flow-runline,
+.bloom-telemetry,
+.portrait figcaption,
+.proof-intro,
+.proof-stat span,
+.experience-route,
+.scroll-monitor b,
+.scroll-monitor p span {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.bloom-core-copy span {
+  font-size: 12px;
+}
+
+.bloom-core-copy strong {
+  font-size: 13px;
 }

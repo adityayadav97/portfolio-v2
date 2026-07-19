@@ -352,26 +352,32 @@ function setupPortraitReveal() {
   let reducedMotion = reducedMotionQuery.matches;
   let queued = false;
 
-  const apply = (progress: number) => {
-    const grayscale = smoothstep(progress);
-    const colorFocus = 1 - grayscale;
+  const apply = (focusInput: number, travelProgress = 0.5) => {
+    const colorFocus = smoothstep(clamp(focusInput));
+    const grayscale = 1 - colorFocus;
     portrait.style.setProperty("--portrait-gray", grayscale.toFixed(3));
     portrait.style.setProperty(
       "--portrait-saturation",
-      (1.1 - grayscale * 0.38).toFixed(3),
+      (0.86 + colorFocus * 0.32).toFixed(3),
     );
-    portrait.style.setProperty("--portrait-contrast", (1.04 + grayscale * 0.04).toFixed(3));
+    portrait.style.setProperty("--portrait-contrast", (1.1 - colorFocus * 0.04).toFixed(3));
     portrait.style.setProperty("--portrait-frame-x", `${(colorFocus * 8).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-frame-y", `${(colorFocus * 8).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-line-x", `${(colorFocus * -6).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-line-y", `${(colorFocus * -6).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-focus", colorFocus.toFixed(3));
     portrait.style.setProperty("--portrait-scale", (1 + colorFocus * 0.035).toFixed(3));
+    portrait.style.setProperty(
+      "--portrait-scan-y",
+      `${(8 + clamp(travelProgress) * 84).toFixed(2)}%`,
+    );
+    portrait.dataset.portraitFocus = colorFocus.toFixed(3);
   };
 
   const update = () => {
     if (reducedMotion) {
-      apply(0);
+      portrait.dataset.portraitPhase = "center";
+      apply(1);
       queued = false;
       return;
     }
@@ -382,14 +388,26 @@ function setupPortraitReveal() {
 
     const bounds = portrait.getBoundingClientRect();
     const viewport = window.innerHeight;
-    const progress = clamp(
-      (viewport * 0.72 - bounds.top) / Math.max(viewport * 0.54, 1),
+    const portraitCenter = bounds.top + bounds.height * 0.5;
+    const viewportCenter = viewport * 0.5;
+    const centerDelta = portraitCenter - viewportCenter;
+    const focusRange = Math.max(viewport * 0.58, bounds.height * 0.9, 1);
+    const colorFocus = 1 - clamp(Math.abs(centerDelta) / focusRange);
+    const travelProgress = clamp(
+      (viewport - bounds.top) / Math.max(viewport + bounds.height, 1),
     );
+    const centerThreshold = focusRange * 0.08;
+    portrait.dataset.portraitPhase =
+      Math.abs(centerDelta) <= centerThreshold
+        ? "center"
+        : centerDelta > 0
+          ? "approach"
+          : "depart";
     portrait.classList.toggle(
       "is-portrait-active",
-      progress < 0.38 && bounds.bottom > 0 && bounds.top < viewport,
+      colorFocus > 0.3 && bounds.bottom > 0 && bounds.top < viewport,
     );
-    apply(progress);
+    apply(colorFocus, travelProgress);
     queued = false;
   };
 

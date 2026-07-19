@@ -51,6 +51,29 @@ type Packet = {
 type Route = {
   curve: CatmullRomCurve3;
   packets: Packet[];
+  depthMaterial: MeshBasicMaterial;
+  glowMaterial: MeshBasicMaterial;
+  railMaterial: MeshBasicMaterial;
+  phase: number;
+};
+
+type PipelineNode = {
+  group: Group;
+  bodyMaterial: MeshStandardMaterial;
+  edgeMaterial: LineBasicMaterial;
+  accentMaterial: MeshBasicMaterial;
+  status: Mesh<BoxGeometry, MeshBasicMaterial>;
+  basePosition: Vector3;
+  phase: number;
+  active: boolean;
+};
+
+type SignalSweep = {
+  group: Group;
+  curve: CatmullRomCurve3;
+  coreMaterial: MeshBasicMaterial;
+  haloMaterial: MeshBasicMaterial;
+  light: PointLight;
 };
 
 type AnimatedLabel = {
@@ -73,7 +96,12 @@ export class ThreeDataFlowScene {
   private rings = new Group();
   private shards = new Group();
   private routes: Route[] = [];
+  private nodes: PipelineNode[] = [];
   private animatedLabels: AnimatedLabel[] = [];
+  private signalSweep?: SignalSweep;
+  private particleField?: Points<BufferGeometry, PointsMaterial>;
+  private trustLight = new PointLight(COLORS.phosphor, 13, 8, 2);
+  private readonly railAxis = new Vector3(1, 0, 0);
   private frame = 0;
   private width = 1;
   private height = 1;
@@ -118,9 +146,16 @@ export class ThreeDataFlowScene {
     keyLight.position.set(3, 7, 9);
     this.scene.add(keyLight);
 
-    const trustLight = new PointLight(COLORS.phosphor, 13, 8, 2);
-    trustLight.position.set(8.8, 0.2, 1.7);
-    this.scene.add(trustLight);
+    const fillLight = new DirectionalLight(COLORS.magenta, 1.35);
+    fillLight.position.set(-4, -2.5, 5);
+    this.scene.add(fillLight);
+
+    const flowLight = new PointLight(COLORS.cobalt, 4.5, 9, 2);
+    flowLight.position.set(2.5, 0.8, 2.2);
+    this.scene.add(flowLight);
+
+    this.trustLight.position.set(8.8, 0.2, 1.7);
+    this.scene.add(this.trustLight);
 
     const backGrid = new GridHelper(22, 22, COLORS.cyan, 0x263532);
     backGrid.rotation.x = Math.PI / 2;
@@ -204,8 +239,29 @@ export class ThreeDataFlowScene {
         opacity: active ? 0.95 : 0.72,
       }),
     );
+    const edgeMaterial = edges.material as LineBasicMaterial;
     edges.scale.setScalar(1.01);
     group.add(edges);
+
+    const depthFrame = new LineSegments(
+      new EdgesGeometry(new BoxGeometry(1.96, 0.96, 0.52)),
+      new LineBasicMaterial({
+        color: accent,
+        transparent: true,
+        opacity: active ? 0.34 : 0.2,
+      }),
+    );
+    depthFrame.position.set(0.08, -0.06, -0.14);
+    group.add(depthFrame);
+
+    const accentMaterial = new MeshBasicMaterial({
+      color: active ? COLORS.void : accent,
+      transparent: true,
+      opacity: active ? 0.68 : 0.5,
+    });
+    const accentRail = new Mesh(new BoxGeometry(1.34, 0.018, 0.035), accentMaterial);
+    accentRail.position.set(0.1, 0.36, 0.29);
+    group.add(accentRail);
 
     const status = new Mesh(
       new BoxGeometry(0.1, 0.1, 0.08),
@@ -238,6 +294,16 @@ export class ThreeDataFlowScene {
     }
 
     this.stage.add(group);
+    this.nodes.push({
+      group,
+      bodyMaterial,
+      edgeMaterial,
+      accentMaterial,
+      status,
+      basePosition: position.clone(),
+      phase: this.nodes.length * 0.82,
+      active,
+    });
   }
 
   private makeLabel(title: string, meta: string, active: boolean) {
@@ -263,6 +329,7 @@ export class ThreeDataFlowScene {
     const texture = new CanvasTexture(labelCanvas);
     texture.colorSpace = SRGBColorSpace;
     texture.minFilter = LinearFilter;
+    texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
     const sprite = new Sprite(
       new SpriteMaterial({ map: texture, transparent: true, depthTest: false }),
     );
@@ -273,25 +340,44 @@ export class ThreeDataFlowScene {
 
   private addRoute(points: Vector3[], color: number, packetCount: number) {
     const curve = new CatmullRomCurve3(points, false, "centripetal");
+    const depthCurve = new CatmullRomCurve3(
+      points.map((point) => point.clone().add(new Vector3(0.04, -0.035, -0.18))),
+      false,
+      "centripetal",
+    );
+    const depthMaterial = new MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+    });
+    const depthRail = new Mesh(
+      new TubeGeometry(depthCurve, 48, 0.035, 6, false),
+      depthMaterial,
+    );
+    this.stage.add(depthRail);
+
     const glowGeometry = new TubeGeometry(curve, 48, 0.072, 6, false);
+    const glowMaterial = new MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.08,
+      depthWrite: false,
+    });
     const glow = new Mesh(
       glowGeometry,
-      new MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.08,
-        depthWrite: false,
-      }),
+      glowMaterial,
     );
     this.stage.add(glow);
 
+    const railMaterial = new MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.74,
+    });
     const rail = new Mesh(
       new TubeGeometry(curve, 48, 0.022, 6, false),
-      new MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.74,
-      }),
+      railMaterial,
     );
     this.stage.add(rail);
 
@@ -309,7 +395,43 @@ export class ThreeDataFlowScene {
       });
       this.stage.add(packet);
     }
-    this.routes.push({ curve, packets });
+    this.routes.push({
+      curve,
+      packets,
+      depthMaterial,
+      glowMaterial,
+      railMaterial,
+      phase: this.routes.length * 1.17,
+    });
+
+    if (packetCount >= 6) this.buildSignalSweep(curve, color);
+  }
+
+  private buildSignalSweep(curve: CatmullRomCurve3, color: number) {
+    const group = new Group();
+    const haloMaterial = new MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.1,
+      depthWrite: false,
+    });
+    const halo = new Mesh(new BoxGeometry(0.62, 0.16, 0.16), haloMaterial);
+    group.add(halo);
+
+    const coreMaterial = new MeshBasicMaterial({
+      color: COLORS.paper,
+      transparent: true,
+      opacity: 0.92,
+      depthWrite: false,
+    });
+    const core = new Mesh(new BoxGeometry(0.34, 0.045, 0.045), coreMaterial);
+    group.add(core);
+
+    const light = new PointLight(color, 3.2, 2.8, 2);
+    group.add(light);
+    group.renderOrder = 14;
+    this.stage.add(group);
+    this.signalSweep = { group, curve, coreMaterial, haloMaterial, light };
   }
 
   private buildTrustRings(center: Vector3) {
@@ -352,6 +474,7 @@ export class ThreeDataFlowScene {
       }),
     );
     particles.name = "data-particles";
+    this.particleField = particles;
     this.stage.add(particles);
   }
 
@@ -511,6 +634,50 @@ export class ThreeDataFlowScene {
     this.rings.rotation.x = elapsed * 0.11;
     this.rings.rotation.y = elapsed * -0.08;
     this.shards.rotation.z = elapsed * 0.018;
+    if (this.particleField) {
+      this.particleField.position.x = this.reducedMotion ? 0 : Math.sin(elapsed * 0.18) * 0.08;
+      this.particleField.position.y = this.reducedMotion ? 0 : Math.cos(elapsed * 0.15) * 0.045;
+    }
+
+    this.nodes.forEach(
+      (
+        {
+          group,
+          bodyMaterial,
+          edgeMaterial,
+          accentMaterial,
+          status,
+          basePosition,
+          phase,
+          active,
+        },
+      ) => {
+        const lift = this.reducedMotion ? 0 : Math.sin(elapsed * 0.62 + phase);
+        const depth = this.reducedMotion ? 0 : Math.cos(elapsed * 0.48 + phase) * 0.032;
+        const activity = this.reducedMotion
+          ? 0.64
+          : 0.5 + Math.sin(elapsed * 1.08 + phase) * 0.5;
+        group.position.set(
+          basePosition.x,
+          basePosition.y + lift * 0.026,
+          basePosition.z + depth,
+        );
+        group.rotation.x = this.reducedMotion ? 0 : lift * 0.005;
+        group.rotation.y = this.reducedMotion
+          ? 0
+          : Math.sin(elapsed * 0.44 + phase) * 0.012;
+        bodyMaterial.emissiveIntensity = active
+          ? 0.24 + activity * 0.14
+          : 0.055 + activity * 0.055;
+        edgeMaterial.opacity = active
+          ? 0.82 + activity * 0.16
+          : 0.58 + activity * 0.16;
+        accentMaterial.opacity = active
+          ? 0.58 + activity * 0.18
+          : 0.36 + activity * 0.22;
+        status.scale.setScalar(0.86 + activity * 0.26);
+      },
+    );
 
     this.animatedLabels.forEach(
       ({ sprite, material, baseScale, baseY, phase }, index) => {
@@ -532,16 +699,43 @@ export class ThreeDataFlowScene {
       },
     );
 
-    this.routes.forEach(({ curve, packets }) => {
-      packets.forEach(({ mesh, offset, speed }, packetIndex) => {
-        const progress = (elapsed * speed + offset) % 1;
-        const point = curve.getPointAt(progress);
-        mesh.position.copy(point);
-        const tangent = curve.getTangentAt(Math.min(progress + 0.002, 1));
-        mesh.rotation.z = Math.atan2(tangent.y, tangent.x);
-        mesh.scale.setScalar(0.88 + Math.sin(elapsed * 2 + packetIndex) * 0.12);
-      });
-    });
+    this.routes.forEach(
+      ({ curve, packets, depthMaterial, glowMaterial, railMaterial, phase }) => {
+        const activity = this.reducedMotion
+          ? 0.64
+          : 0.5 + Math.sin(elapsed * 1.12 - phase) * 0.5;
+        depthMaterial.opacity = 0.12 + activity * 0.1;
+        glowMaterial.opacity = 0.045 + activity * 0.07;
+        railMaterial.opacity = 0.64 + activity * 0.2;
+        packets.forEach(({ mesh, offset, speed }, packetIndex) => {
+          const progress = (elapsed * speed + offset) % 1;
+          const point = curve.getPointAt(progress);
+          mesh.position.copy(point);
+          const tangent = curve.getTangentAt(Math.min(progress + 0.002, 1));
+          mesh.rotation.z = Math.atan2(tangent.y, tangent.x);
+          mesh.scale.setScalar(0.88 + Math.sin(elapsed * 2 + packetIndex) * 0.12);
+        });
+      },
+    );
+
+    if (this.signalSweep) {
+      const { group, curve, coreMaterial, haloMaterial, light } = this.signalSweep;
+      const progress = this.reducedMotion ? 0.72 : (elapsed * 0.105) % 1;
+      const point = curve.getPointAt(progress);
+      const tangent = curve.getTangentAt(Math.min(progress + 0.002, 1)).normalize();
+      const pulse = this.reducedMotion ? 0.72 : 0.5 + Math.sin(elapsed * 3.2) * 0.5;
+      const arrival = Math.max(0, 1 - Math.abs(progress - 0.965) / 0.075);
+      group.position.copy(point);
+      group.quaternion.setFromUnitVectors(this.railAxis, tangent);
+      group.scale.set(0.92 + pulse * 0.14, 0.84 + pulse * 0.22, 0.84 + pulse * 0.22);
+      coreMaterial.opacity = 0.8 + pulse * 0.2;
+      haloMaterial.opacity = 0.055 + pulse * 0.11;
+      light.intensity = 2.2 + pulse * 2.2;
+      this.trustLight.intensity = 12.5 + arrival * 6.5;
+      this.rings.scale.setScalar(
+        this.reducedMotion ? 1 : 1 + Math.sin(elapsed * 0.9) * 0.012 + arrival * 0.065,
+      );
+    }
 
     if (this.throughput && time - this.lastMetricUpdate > 220) {
       this.updateThroughput(elapsed);
