@@ -26,12 +26,14 @@ import {
   X,
 } from "@lucide/astro";
 
-const resumeUrl =
-  "https://drive.google.com/file/d/1mhOFp3oGO1Zi1V76GKXMZral6wfICptW/view?usp=sharing";
+const resumeUrl = `${import.meta.env.BASE_URL}Aditya-Yadav-Data-Engineer-Resume.pdf`;
 const emailAddress = "adityayadav8g@gmail.com";
+const emailSubject = "Data engineering opportunity";
 const gmailComposeUrl =
-  `https://mail.google.com/mail/?view=cm&fs=1&to=${emailAddress}&su=${encodeURIComponent("Data engineering opportunity")}`;
+  `https://mail.google.com/mail/?view=cm&fs=1&to=${emailAddress}&su=${encodeURIComponent(emailSubject)}`;
+const mailtoUrl = `mailto:${emailAddress}?subject=${encodeURIComponent(emailSubject)}`;
 const [emailUser, emailDomain] = emailAddress.split("@");
+const portraitUrl = `${import.meta.env.BASE_URL}aditya-yadav.jpg`;
 
 const experiences = [
   {
@@ -41,7 +43,7 @@ const experiences = [
     context: "Business Performance Engineering, via EPAM",
     impact:
       "Migrating production Spark and Scala workloads into a centralized AWS data platform while protecting data quality, access, and downstream continuity.",
-    metrics: ["200+ tables", "6+ pipelines", "0 data loss"],
+    metrics: ["200+ tables", "6+ pipelines", "Reconciled releases"],
   },
   {
     period: "Feb 2025 - Aug 2025",
@@ -49,7 +51,7 @@ const experiences = [
     client: "Atlassian",
     context: "VNext data platform modernization, via EPAM",
     impact:
-      "Moved 45+ source and consume-layer tables with zero downtime, automated UUID workflows, and introduced reconciliation controls for safer releases.",
+      "Migrated 45+ source and consumption-layer tables with zero downtime, automated UUID workflows, and added reconciliation gates that reduced manual effort and pipeline runtime.",
     metrics: ["45+ tables", "40% less manual effort", "30% faster pipelines"],
   },
   {
@@ -68,7 +70,7 @@ const experiences = [
     context: "Four-month intensive engineering program",
     impact:
       "Built the foundation across Python, SQL, Spark, Kafka, cloud platforms, warehousing, streaming, and orchestration used in the client work that followed.",
-    metrics: ["Top graduate", "90%+ score", "Production ready"],
+    metrics: ["Top graduate", "90%+ score", "4-month EngX"],
   },
 ];
 
@@ -76,9 +78,9 @@ const projects = [
   {
     number: "01",
     id: "benchbuddy",
-    kind: "Featured AI product",
+    kind: "Featured retrieval product",
     title: "BenchBuddy AI",
-    statement: "Award-winning answers, grounded in evidence and built to know when to escalate.",
+    statement: "Grounded PMO answers with explicit confidence, evidence, and escalation.",
     description:
       "An award-winning PMO knowledge assistant built around retrieval, confidence calibration, and explicit guardrails. It stays grounded in an approved knowledge base and escalates when certainty is not enough.",
     metrics: [
@@ -100,7 +102,7 @@ const projects = [
     description:
       "A local-to-cloud lakehouse that moves retail data through Bronze, Silver, Gold, and dbt marts. Delta MERGE keeps reruns idempotent while automated checks stop bad data before publication.",
     metrics: [
-      ["1M+", "records processed"],
+      ["1.05M", "generated records"],
       ["15+", "quality checks"],
       ["4", "governed layers"],
     ],
@@ -112,12 +114,12 @@ const projects = [
     id: "streaming",
     kind: "Streaming systems",
     title: "Real-Time Events Pipeline",
-    statement: "Clickstream events become trusted insight in under a minute.",
+    statement: "Clickstream events land durably in Delta in under a minute; curated marts refresh hourly.",
     description:
       "Kafka feeds Spark Structured Streaming with explicit schemas, checkpointing, watermarks, and bounded micro-batches. Delta provides exactly-once persistence before dbt builds analytics-ready marts.",
     metrics: [
-      ["10K+", "events per minute"],
-      ["<60s", "event-to-insight"],
+      ["12K/min", "simulated producer"],
+      ["<60s", "event-to-Delta"],
       ["10 min", "late-data window"],
     ],
     stack: ["Kafka", "Spark Streaming", "Delta Lake", "dbt", "Airflow"],
@@ -188,7 +190,7 @@ const credentials = [
   [
     "Azure Fundamentals",
     "Microsoft, 2025",
-    "https://learn.microsoft.com/api/credentials/share/en-us/Adityayadav-8366/C5F971221032C906?sharingId=E85349BF47D2DA66",
+    "https://learn.microsoft.com/en-us/users/adityayadav-8366/credentials",
   ],
   [
     "Azure AI Fundamentals",
@@ -204,7 +206,7 @@ const recognition = [
   ["EngX Bootcamp", "Top graduate with 90%+ performance, 2024"],
 ];
 
-const canonical = "https://adityayadav97.github.io/portfolio-v2/";
+const canonical = new URL(import.meta.env.BASE_URL, "https://adityayadav97.github.io").toString();
 const socialImage = `${canonical}og.png`;
 const schema = {
   "@context": "https://schema.org",
@@ -212,6 +214,10 @@ const schema = {
   name: "Aditya Yadav",
   jobTitle: "Data Engineer",
   worksFor: { "@type": "Organization", name: "EPAM Systems" },
+  alumniOf: {
+    "@type": "CollegeOrUniversity",
+    name: "Chandigarh University",
+  },
   url: canonical,
   email: "mailto:adityayadav8g@gmail.com",
   sameAs: [
@@ -242,10 +248,7 @@ const schema = {
     <meta name="author" content="Aditya Yadav" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href={canonical} />
-    <link
-      rel="icon"
-      href="https://avatars.githubusercontent.com/u/67759837?v=4"
-    />
+    <link rel="icon" type="image/jpeg" href={portraitUrl} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content="Aditya Yadav - Data Engineer" />
@@ -422,10 +425,10 @@ const schema = {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-external-action
-                aria-label="View resume (opens in a new tab)"
+                aria-label="Open resume PDF in a new tab"
               >
                 <FileText size={18} aria-hidden="true" />
-                <span>View resume</span>
+                <span>Resume - PDF</span>
               </a>
             </div>
           </div>
@@ -437,7 +440,7 @@ const schema = {
             <span>TRUST</span>
           </div>
 
-          <div class="hero-telemetry" aria-label="Selected engineering metrics">
+          <div class="hero-telemetry" role="group" aria-label="Selected engineering metrics">
             <p><span></span>Live reliability</p>
             <div>
               <span>Throughput</span>
@@ -474,11 +477,11 @@ const schema = {
           </div>
           <div class="proof-stat">
             <strong data-count="0">0</strong>
-            <span>data loss</span>
+            <span>downtime on 45+ table move</span>
           </div>
           <div class="proof-stat">
             <strong data-count="3">3</strong>
-            <span>Fortune 500 clients</span>
+            <span>global enterprise clients</span>
           </div>
         </div>
       </section>
@@ -505,7 +508,7 @@ const schema = {
           </div>
           <figure class="portrait" data-portrait data-reveal>
             <img
-              src="https://avatars.githubusercontent.com/u/67759837?v=4"
+              src={portraitUrl}
               alt="Portrait of Aditya Yadav"
               width="460"
               height="460"
@@ -533,6 +536,9 @@ const schema = {
             <div class="experience-route" aria-hidden="true">
               <span>Now</span><i></i><span>Migrate</span><i></i><span>Tune</span><i></i><span>Build</span>
             </div>
+            <p class="experience-disclosure">
+              Selected client engagements delivered via EPAM. Impact figures are rounded.
+            </p>
           </div>
 
           <div class="experience-list">
@@ -881,10 +887,10 @@ const schema = {
             <p>Six active credentials plus the competitive wins that mattered most.</p>
           </div>
 
-          <div class="credential-list" aria-label="Professional credentials">
+          <div class="credential-list" role="list" aria-label="Professional credentials">
             {
               credentials.map(([title, issuer, url], index) => (
-                <a href={url} target="_blank" rel="noreferrer" data-reveal>
+                <a href={url} target="_blank" rel="noreferrer" data-reveal role="listitem">
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{title}</strong>
                   <small>{issuer}</small>
@@ -894,10 +900,10 @@ const schema = {
             }
           </div>
 
-          <div class="recognition-list" aria-label="Awards and recognition">
+          <div class="recognition-list" role="list" aria-label="Awards and recognition">
             {
               recognition.map(([title, detail]) => (
-                <article data-reveal>
+                <article data-reveal role="listitem">
                   <Award size={21} aria-hidden="true" />
                   <div>
                     <h3>{title}</h3>
@@ -934,11 +940,14 @@ const schema = {
                 simple: calm rollouts, visible quality, and automation that
                 removes repetitive work without hiding operational truth.
               </p>
+              <p class="about-education">
+                B.E. Computer Science - Big Data Analytics, Chandigarh University, 2024.
+              </p>
             </div>
-            <div class="about-proof-line" aria-label="Engineering priorities">
-              <span><b>01</b> Replayable</span>
-              <span><b>02</b> Observable</span>
-              <span><b>03</b> Owned</span>
+            <div class="about-proof-line" role="list" aria-label="Engineering priorities">
+              <span role="listitem"><b>01</b> Replayable</span>
+              <span role="listitem"><b>02</b> Observable</span>
+              <span role="listitem"><b>03</b> Owned</span>
             </div>
           </div>
           <aside class="about-console" data-reveal aria-label="Engineering loop">
@@ -1013,31 +1022,41 @@ const schema = {
           <div class="contact-email-wrap" data-reveal>
             <a
               class="contact-email"
-              href={gmailComposeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-external-action
-              aria-label={`Compose in Gmail to ${emailAddress} (opens in a new tab)`}
+              href={mailtoUrl}
+              aria-label={`Email ${emailAddress}`}
             >
               <span class="contact-email-main">
-                <small>Compose in Gmail</small>
+                <small>Email Aditya</small>
                 <strong>{emailUser}<wbr />@{emailDomain}</strong>
               </span>
               <span class="contact-email-action">
-                <span>Start conversation</span><ArrowUpRight aria-hidden="true" />
+                <span>Open email app</span><ArrowUpRight aria-hidden="true" />
               </span>
             </a>
-            <button
-              class="copy-email"
-              type="button"
-              data-copy-email
-              data-email={emailAddress}
-              aria-label={`Copy ${emailAddress}`}
-            >
-              <Copy class="copy-email-icon" size={20} aria-hidden="true" />
-              <Check class="copy-email-check" size={20} aria-hidden="true" />
-              <span data-copy-label>Copy email</span>
-            </button>
+            <div class="contact-utilities">
+              <a
+                class="gmail-compose"
+                href={gmailComposeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-external-action
+                aria-label={`Compose in Gmail to ${emailAddress} (opens in a new tab)`}
+              >
+                <Mail size={19} aria-hidden="true" />
+                <span>Gmail</span>
+              </a>
+              <button
+                class="copy-email"
+                type="button"
+                data-copy-email
+                data-email={emailAddress}
+                aria-label={`Copy ${emailAddress}`}
+              >
+                <Copy class="copy-email-icon" size={20} aria-hidden="true" />
+                <Check class="copy-email-check" size={20} aria-hidden="true" />
+                <span data-copy-label>Copy email</span>
+              </button>
+            </div>
             <p class="sr-only" aria-live="polite" data-copy-status></p>
           </div>
           <div class="contact-links" data-reveal>

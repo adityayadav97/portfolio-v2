@@ -37,6 +37,23 @@ test("social sharing metadata ships with its visual", async () => {
   assert.ok(socialImage.size > 100_000);
 });
 
+test("recruiter assets and discovery files are self-hosted", async () => {
+  assert.match(html, /href="\/portfolio-v2\/Aditya-Yadav-Data-Engineer-Resume\.pdf"/);
+  assert.match(html, /src="\/portfolio-v2\/aditya-yadav\.jpg"/);
+
+  const resume = await stat(
+    new URL("../dist/Aditya-Yadav-Data-Engineer-Resume.pdf", import.meta.url),
+  );
+  const portrait = await stat(new URL("../dist/aditya-yadav.jpg", import.meta.url));
+  const robots = await readFile(new URL("../dist/robots.txt", import.meta.url), "utf8");
+  const sitemap = await readFile(new URL("../dist/sitemap.xml", import.meta.url), "utf8");
+
+  assert.ok(resume.size > 100_000);
+  assert.ok(portrait.size > 10_000);
+  assert.match(robots, /Sitemap: https:\/\/adityayadav97\.github\.io\/portfolio-v2\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/adityayadav97\.github\.io\/portfolio-v2\/<\/loc>/);
+});
+
 test("production output contains no known placeholders", () => {
   assert.doesNotMatch(html, /ADD_[A-Z_]+|YOUR_[A-Z_]+|example\.com|TODO/i);
   assert.doesNotMatch(html, /ADD-YOUR-STREAMLIT-URL-HERE/i);
@@ -56,6 +73,7 @@ test("motion and mobile navigation have accessible fallbacks", () => {
 test("contact actions use browser-reliable destinations and controls", () => {
   assert.match(html, /href="#contact" aria-label="Let's talk: jump to contact options"/);
   assert.match(html, /data-scroll-label="Contact"/);
+  assert.match(html, /href="mailto:adityayadav8g@gmail\.com\?subject=Data%20engineering%20opportunity"/);
   assert.match(html, /https:\/\/mail\.google\.com\/mail\/\?view=cm&amp;fs=1&amp;to=adityayadav8g@gmail\.com/);
   assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com \(opens in a new tab\)"/);
   assert.match(html, /data-copy-email/);
@@ -71,7 +89,6 @@ test("contact actions use browser-reliable destinations and controls", () => {
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /data-section="contact"/);
   assert.match(html, /aria-labelledby="impact-label"/);
-  assert.doesNotMatch(html, /href="mailto:adityayadav8g@gmail\.com"/);
 });
 
 test("premium scroll hooks and experience hierarchy ship in production", () => {
@@ -97,7 +114,7 @@ test("featured project and cinematic interaction hooks ship in production", () =
     const sectionMarkup = html.slice(projectPositions[index], projectPositions[index] + 700);
     assert.match(sectionMarkup, new RegExp(`data-project-index="0${index + 1}"`));
   });
-  assert.match(html, /Featured AI product/);
+  assert.match(html, /Featured retrieval product/);
   assert.match(html, /Try BenchBuddy AI/);
   assert.match(html, /Review source &amp; tests/);
   assert.match(html, /class="assistant-retrieval"/);
@@ -131,4 +148,13 @@ test("dimensional visual system and compact systems layout ship in production", 
 test("the broken retail dashboard live link is not published", () => {
   assert.doesNotMatch(html, /ADD_RETAIL_DASHBOARD_URL/);
   assert.match(html, /retail-analytics-dashboard/);
+});
+
+test("public claims remain precise and evidence-aligned", () => {
+  assert.doesNotMatch(html, /Fortune 500 clients/i);
+  assert.doesNotMatch(html, /event-to-insight/i);
+  assert.doesNotMatch(html, /C5F971221032C906/);
+  assert.match(html, /global enterprise clients/i);
+  assert.match(html, /event-to-Delta/i);
+  assert.match(html, /Selected client engagements delivered via EPAM/);
 });

@@ -81,8 +81,11 @@ function setupMenu() {
     const link = (event.target as HTMLElement).closest<HTMLAnchorElement>("a");
     if (!link) return;
     const href = link.getAttribute("href");
+    if (!href?.startsWith("#")) {
+      close(true);
+      return;
+    }
     close();
-    if (!href?.startsWith("#")) return;
     window.setTimeout(() => {
       const destination = document.querySelector<HTMLElement>(href);
       const focusTarget =
@@ -116,7 +119,9 @@ function setupMenu() {
   });
 
   window.addEventListener("resize", () => {
-    if (window.innerWidth > 920) close();
+    if (window.innerWidth > 920 && button.getAttribute("aria-expanded") === "true") {
+      close(true);
+    }
   });
 }
 
@@ -808,13 +813,28 @@ function setupContactActions() {
   if (!button || !label || !status) return;
 
   const copyWithFallback = async (value: string) => {
-    if (!navigator.clipboard?.writeText) return false;
-    try {
-      await navigator.clipboard.writeText(value);
-      return true;
-    } catch {
-      return false;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch {
+        // Continue to the selection-based fallback for restricted browsers.
+      }
     }
+
+    const helper = document.createElement("textarea");
+    helper.value = value;
+    helper.setAttribute("readonly", "");
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    helper.style.pointerEvents = "none";
+    document.body.append(helper);
+    helper.select();
+    const legacyCopy = (document as unknown as { execCommand?: (command: string) => boolean })
+      .execCommand;
+    const copied = legacyCopy ? legacyCopy.call(document, "copy") : false;
+    helper.remove();
+    return copied;
   };
 
   button.addEventListener("click", async () => {
@@ -1857,9 +1877,29 @@ async function setupDataFlow() {
   const canvas = document.querySelector<HTMLCanvasElement>("#data-flow");
   if (!canvas) return;
   let fallbackCanvas = canvas;
+  const connection = (
+    navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }
+  ).connection;
+  const constrainedConnection =
+    connection?.saveData || connection?.effectiveType?.includes("2g");
 
-  if (!reducedMotionQuery.matches && window.innerWidth > 1180) {
+  if (!reducedMotionQuery.matches && window.innerWidth > 1180 && !constrainedConnection) {
     try {
+      const idleWindow = window as Window & {
+        requestIdleCallback?: (
+          callback: () => void,
+          options?: { timeout: number },
+        ) => number;
+      };
+      await new Promise<void>((resolve) => {
+        if (idleWindow.requestIdleCallback) {
+          idleWindow.requestIdleCallback(resolve, { timeout: 700 });
+          return;
+        }
+        window.setTimeout(resolve, 180);
+      });
       const { ThreeDataFlowScene } = await import("./three-flow");
       new ThreeDataFlowScene(canvas);
       return;
