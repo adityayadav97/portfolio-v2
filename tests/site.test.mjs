@@ -50,10 +50,17 @@ test("motion and mobile navigation have accessible fallbacks", () => {
 test("contact actions use browser-reliable destinations and controls", () => {
   assert.match(html, /href="#contact" aria-label="Open channel: jump to contact options"/);
   assert.match(html, /https:\/\/mail\.google\.com\/mail\/\?view=cm&amp;fs=1&amp;to=adityayadav8g@gmail\.com/);
-  assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com"/);
+  assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com \(opens in a new tab\)"/);
   assert.match(html, /data-copy-email/);
   assert.match(html, /data-mobile-resume/);
-  assert.doesNotMatch(html, /data-mobile-resume[^>]*target="_blank"/);
+  const externalActions = [...html.matchAll(/<a[^>]*data-external-action[^>]*>/g)].map(
+    ([tag]) => tag,
+  );
+  assert.equal(externalActions.length, 6);
+  externalActions.forEach((tag) => {
+    assert.match(tag, /target="_blank"/);
+    assert.match(tag, /rel="noopener noreferrer"/);
+  });
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /data-section="contact"/);
   assert.match(html, /aria-labelledby="impact-label"/);
@@ -66,6 +73,9 @@ test("premium scroll hooks and experience hierarchy ship in production", () => {
   assert.match(html, /data-motion-kind="experience"/);
   assert.match(css, /\.experience-row\.is-experience-active/);
   assert.match(css, /--section-progress/);
+  assert.match(html, /data-portrait/);
+  assert.match(css, /--portrait-gray/);
+  assert.match(css, /telemetry-scan/);
 });
 
 test("the broken retail dashboard live link is not published", () => {

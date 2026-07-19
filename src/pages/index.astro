@@ -326,11 +326,31 @@ const schema = {
         <a href="#systems">Systems <span>03</span></a>
         <a href="#about">About <span>04</span></a>
         <a href="#contact">Contact <span>05</span></a>
-        <a href={resumeUrl} data-mobile-resume>
+        <a
+          href={resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-mobile-resume
+          data-external-action
+          aria-label="Resume (opens in a new tab)"
+        >
           Resume <ArrowUpRight size={18} aria-hidden="true" />
         </a>
       </nav>
     </header>
+
+    <button
+      class="flow-control"
+      id="flow-toggle"
+      type="button"
+      aria-pressed="false"
+      aria-label="Pause motion"
+      title="Pause motion"
+    >
+      <Pause class="pause-icon" size={18} aria-hidden="true" />
+      <Play class="play-icon" size={18} aria-hidden="true" />
+      <span data-flow-label>Pause motion</span>
+    </button>
 
     <main id="main-content">
       <section
@@ -370,7 +390,9 @@ const schema = {
                 class="button button-ghost"
                 href={resumeUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                data-external-action
+                aria-label="View resume (opens in a new tab)"
               >
                 <FileText size={18} aria-hidden="true" />
                 <span>View resume</span>
@@ -400,19 +422,6 @@ const schema = {
               <strong>Exactly once</strong>
             </div>
           </div>
-
-          <button
-            class="flow-control"
-            id="flow-toggle"
-            type="button"
-            aria-pressed="false"
-            aria-label="Pause motion"
-            title="Pause motion"
-          >
-            <Pause class="pause-icon" size={18} aria-hidden="true" />
-            <Play class="play-icon" size={18} aria-hidden="true" />
-            <span data-flow-label>Pause motion</span>
-          </button>
         </div>
       </section>
 
@@ -464,7 +473,7 @@ const schema = {
               failures, and making data platforms easier to operate at scale.
             </p>
           </div>
-          <figure class="portrait" data-reveal>
+          <figure class="portrait" data-portrait data-reveal>
             <img
               src="https://avatars.githubusercontent.com/u/67759837?v=4"
               alt="Portrait of Aditya Yadav"
@@ -849,7 +858,10 @@ const schema = {
             <a
               class="contact-email"
               href={gmailComposeUrl}
-              aria-label={`Compose in Gmail to ${emailAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-external-action
+              aria-label={`Compose in Gmail to ${emailAddress} (opens in a new tab)`}
             >
               <span class="contact-email-main">
                 <small>Compose in Gmail</small>
@@ -873,17 +885,38 @@ const schema = {
             <p class="sr-only" aria-live="polite" data-copy-status></p>
           </div>
           <div class="contact-links" data-reveal>
-            <a class="contact-link contact-link-github" href="https://github.com/adityayadav97">
+            <a
+              class="contact-link contact-link-github"
+              href="https://github.com/adityayadav97"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-external-action
+              aria-label="GitHub (opens in a new tab)"
+            >
               <span class="contact-link-icon"><CodeXml size={27} aria-hidden="true" /></span>
               <span><strong>GitHub</strong><small>Systems, code, and experiments</small></span>
               <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />
             </a>
-            <a class="contact-link contact-link-linkedin" href="https://www.linkedin.com/in/theadityayadav/">
+            <a
+              class="contact-link contact-link-linkedin"
+              href="https://www.linkedin.com/in/theadityayadav/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-external-action
+              aria-label="LinkedIn (opens in a new tab)"
+            >
               <span class="contact-link-icon"><ContactRound size={27} aria-hidden="true" /></span>
               <span><strong>LinkedIn</strong><small>Experience and conversations</small></span>
               <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />
             </a>
-            <a class="contact-link contact-link-resume" href={resumeUrl}>
+            <a
+              class="contact-link contact-link-resume"
+              href={resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-external-action
+              aria-label="Resume (opens in a new tab)"
+            >
               <span class="contact-link-icon"><FileText size={27} aria-hidden="true" /></span>
               <span><strong>Resume</strong><small>Impact, projects, and credentials</small></span>
               <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />

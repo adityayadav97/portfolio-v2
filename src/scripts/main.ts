@@ -2,6 +2,15 @@ const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const easeOutCubic = (value: number) => 1 - (1 - value) ** 3;
+const visualPalette = {
+  void: "#080b0a",
+  panel: "#111715",
+  paper: "#f2f4f1",
+  blue: "#405fae",
+  live: "#b8d879",
+  teal: "#4fa88f",
+  rust: "#c86a4f",
+};
 
 function setupHeader() {
   const header = document.querySelector<HTMLElement>("[data-header]");
@@ -305,6 +314,66 @@ function setupMotionSections() {
   update();
 }
 
+function setupPortraitReveal() {
+  const portrait = document.querySelector<HTMLElement>("[data-portrait]");
+  if (!portrait) return;
+
+  let userPaused = false;
+  let reducedMotion = reducedMotionQuery.matches;
+  let queued = false;
+
+  const apply = (progress: number) => {
+    const eased = easeOutCubic(progress);
+    portrait.style.setProperty("--portrait-gray", (1 - eased).toFixed(3));
+    portrait.style.setProperty("--portrait-saturation", (0.72 + eased * 0.38).toFixed(3));
+    portrait.style.setProperty("--portrait-contrast", (1.08 - eased * 0.04).toFixed(3));
+    portrait.style.setProperty("--portrait-frame-x", `${(eased * 8).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-frame-y", `${(eased * 8).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-line-x", `${(eased * -6).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-line-y", `${(eased * -6).toFixed(2)}px`);
+  };
+
+  const update = () => {
+    if (reducedMotion) {
+      apply(1);
+      queued = false;
+      return;
+    }
+    if (userPaused) {
+      queued = false;
+      return;
+    }
+
+    const bounds = portrait.getBoundingClientRect();
+    const viewport = window.innerHeight;
+    const progress = clamp((viewport * 0.9 - bounds.top) / Math.max(viewport * 0.58, 1));
+    portrait.classList.toggle(
+      "is-portrait-active",
+      bounds.bottom > 0 && bounds.top < viewport,
+    );
+    apply(progress);
+    queued = false;
+  };
+
+  const requestUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  window.addEventListener("motionstatechange", (event) => {
+    userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+    if (!userPaused) requestUpdate();
+  });
+  reducedMotionQuery.addEventListener("change", (event) => {
+    reducedMotion = event.matches;
+    requestUpdate();
+  });
+  update();
+}
+
 function setupScrollMonitor() {
   const monitor = document.querySelector<HTMLElement>(".scroll-monitor");
   const indexOutput = monitor?.querySelector<HTMLElement>("[data-scroll-index]");
@@ -317,7 +386,7 @@ function setupScrollMonitor() {
   const railSegments = Array.from(document.querySelectorAll<HTMLElement>(".chromatic-rail span"));
   if (!monitor || !indexOutput || !labelOutput || !meter || !sections.length) return;
 
-  const accents = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0", "#ffd447"];
+  const accents = [visualPalette.blue, visualPalette.live];
   let queued = false;
 
   const update = () => {
@@ -531,6 +600,7 @@ class DataFlowScene {
   private label: HTMLElement | null;
   private throughput: HTMLElement | null;
   private lastMetricUpdate = 0;
+  private pausedElapsed = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext("2d");
@@ -585,6 +655,11 @@ class DataFlowScene {
 
     this.toggle?.addEventListener("click", () => {
       this.userPaused = !this.userPaused;
+      if (this.userPaused) {
+        this.pausedElapsed = (performance.now() - this.startTime) / 1000;
+      } else {
+        this.startTime = performance.now() - this.pausedElapsed * 1000;
+      }
       this.toggle?.setAttribute("aria-pressed", String(this.userPaused));
       const action = this.userPaused ? "Resume motion" : "Pause motion";
       this.toggle?.setAttribute("title", action);
@@ -594,7 +669,6 @@ class DataFlowScene {
       window.dispatchEvent(
         new CustomEvent("motionstatechange", { detail: { paused: this.userPaused } }),
       );
-      if (!this.userPaused) this.startTime = performance.now();
       this.draw(performance.now());
       this.updateLoop();
     });
@@ -642,13 +716,13 @@ class DataFlowScene {
   }
 
   private getRoutes(): Point[][] {
-    const compact = window.innerWidth <= 1100;
+    const compact = this.width <= 1100;
     const shiftX = this.pointer.x;
     const shiftY = this.pointer.y;
 
     if (compact) {
-      const y = this.height * (window.innerWidth < 700 ? 0.94 : 0.95) + shiftY;
-      const points = [0.08, 0.27, 0.47, 0.68, 0.88].map((ratio, index) => ({
+      const y = this.height * (this.width < 700 ? 0.92 : 0.94) + shiftY;
+      const points = [0.09, 0.295, 0.5, 0.705, 0.91].map((ratio, index) => ({
         x: this.width * ratio + shiftX * (index / 5),
         y,
       }));
@@ -669,11 +743,15 @@ class DataFlowScene {
     ]);
   }
 
-  private pointOnRoute(route: Point[], progress: number): Point {
+  private routeLength(route: Point[]) {
     let total = 0;
     for (let index = 1; index < route.length; index += 1) {
       total += Math.hypot(route[index].x - route[index - 1].x, route[index].y - route[index - 1].y);
     }
+    return total;
+  }
+
+  private pointOnRoute(route: Point[], progress: number, total = this.routeLength(route)): Point {
     let remaining = progress * total;
 
     for (let index = 0; index < route.length - 1; index += 1) {
@@ -699,9 +777,9 @@ class DataFlowScene {
   private drawGrid() {
     const context = this.context;
     context.save();
-    context.strokeStyle = "rgba(243, 241, 232, 0.055)";
+    context.strokeStyle = "rgba(242, 244, 241, 0.06)";
     context.lineWidth = 1;
-    const step = window.innerWidth <= 1100 ? 32 : 48;
+    const step = this.width <= 1100 ? 32 : 48;
 
     for (let x = 0.5; x < this.width; x += step) {
       context.beginPath();
@@ -720,16 +798,20 @@ class DataFlowScene {
 
   private drawSignalField(time: number) {
     const context = this.context;
-    const elapsed = this.reducedMotion || this.userPaused ? 0 : (time - this.startTime) / 1000;
-    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0"];
-    const count = window.innerWidth <= 1100 ? 9 : 24;
+    const elapsed = this.reducedMotion
+      ? 1.2
+      : this.userPaused
+        ? this.pausedElapsed
+        : (time - this.startTime) / 1000;
+    const colors = [visualPalette.blue, visualPalette.live, visualPalette.paper];
+    const count = this.width <= 1100 ? 7 : 12;
 
     context.save();
     for (let index = 0; index < count; index += 1) {
       const baseX = this.width * (0.47 + ((index * 0.137) % 0.5));
       const baseY = this.height * (0.12 + ((index * 0.211) % 0.76));
       const offset = Math.sin(elapsed * 0.7 + index * 1.9) * (index % 3 === 0 ? 9 : 4);
-      context.globalAlpha = 0.18 + ((index * 7) % 5) * 0.06;
+      context.globalAlpha = 0.13 + ((index * 7) % 4) * 0.05;
       context.fillStyle = colors[index % colors.length];
       const size = index % 6 === 0 ? 5 : 3;
       context.fillRect(baseX + offset, baseY - offset * 0.45, size, size);
@@ -737,13 +819,17 @@ class DataFlowScene {
     context.restore();
   }
 
-  private drawTrustBloom(center: Point, time: number, compact: boolean) {
+  private drawTrustBloom(center: Point, time: number, compact: boolean, reveal: number) {
     const context = this.context;
-    const elapsed = this.reducedMotion || this.userPaused ? 0.7 : (time - this.startTime) / 1000;
-    const petalCount = compact ? 7 : 11;
-    const radius = compact ? 30 : 58;
-    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0"];
-    const pulse = this.reducedMotion ? 1 : 0.9 + Math.sin(elapsed * 1.35) * 0.1;
+    const elapsed = this.reducedMotion
+      ? 1.2
+      : this.userPaused
+        ? this.pausedElapsed
+        : (time - this.startTime) / 1000;
+    const petalCount = compact ? 7 : 9;
+    const radius = compact ? 31 : 56;
+    const colors = [visualPalette.blue, visualPalette.live];
+    const pulse = this.reducedMotion ? 1 : 0.96 + Math.sin(elapsed * 0.8) * 0.04;
 
     context.save();
     context.translate(center.x, center.y);
@@ -776,17 +862,17 @@ class DataFlowScene {
         0,
         0,
       );
-      context.globalAlpha = 0.15;
+      context.globalAlpha = 0.08 + reveal * 0.08;
       context.fillStyle = colors[index % colors.length];
       context.fill();
-      context.globalAlpha = 0.8;
+      context.globalAlpha = 0.28 + reveal * 0.44;
       context.strokeStyle = colors[index % colors.length];
       context.lineWidth = 1;
       context.stroke();
     }
 
-    context.globalAlpha = 0.8;
-    context.strokeStyle = "#f3f1e8";
+    context.globalAlpha = 0.3 + reveal * 0.34;
+    context.strokeStyle = visualPalette.paper;
     context.setLineDash([2, 6]);
     context.beginPath();
     context.arc(0, 0, radius * 0.62, 0, Math.PI * 2);
@@ -794,22 +880,25 @@ class DataFlowScene {
     context.restore();
   }
 
-  private drawNode(point: Point, label: string, active = false) {
+  private drawNode(point: Point, label: string, active = false, reveal = 1) {
     const context = this.context;
-    const compact = window.innerWidth <= 1100;
-    const nodeWidth = compact ? 42 : 74;
-    const nodeHeight = compact ? 24 : 34;
+    const compact = this.width <= 1100;
+    const veryCompact = this.width <= 430;
+    const nodeWidth = veryCompact ? 54 : compact ? 70 : 98;
+    const nodeHeight = veryCompact ? 32 : compact ? 38 : 44;
+    const x = point.x - (1 - reveal) * 18;
     context.save();
-    context.fillStyle = active ? "#c8ff3d" : "#111514";
-    context.strokeStyle = active ? "#c8ff3d" : "rgba(243, 241, 232, 0.34)";
+    context.globalAlpha = reveal;
+    context.fillStyle = active ? visualPalette.live : visualPalette.panel;
+    context.strokeStyle = active ? visualPalette.live : "rgba(242, 244, 241, 0.42)";
     context.lineWidth = 1;
-    context.fillRect(point.x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
-    context.strokeRect(point.x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
-    context.fillStyle = active ? "#111413" : "#d8d7d0";
-    context.font = `${compact ? 7 : 9}px IBM Plex Mono, monospace`;
+    context.fillRect(x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
+    context.strokeRect(x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
+    context.fillStyle = active ? "#101513" : "#d9ded9";
+    context.font = `600 ${compact ? 11 : 12}px IBM Plex Mono, monospace`;
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(label, point.x, point.y + 0.5);
+    context.fillText(label, x, point.y + 0.5);
     context.restore();
   }
 
@@ -821,14 +910,33 @@ class DataFlowScene {
     this.drawSignalField(time);
 
     const routes = this.getRoutes();
-    const compact = window.innerWidth <= 1100;
+    const routeLengths = routes.map((route) => this.routeLength(route));
+    const compact = this.width <= 1100;
     const labels = compact
       ? ["RAW", "INGEST", "MODEL", "CHECK", "SERVE"]
       : ["SOURCE", "INGEST", "TRANSFORM", "QUALITY", "WAREHOUSE"];
+    const elapsed = this.reducedMotion
+      ? 1.2
+      : this.userPaused
+        ? this.pausedElapsed
+        : (time - this.startTime) / 1000;
+    const routeReveal = this.reducedMotion ? 1 : easeOutCubic(clamp(elapsed / 1.05));
 
     context.save();
-    context.strokeStyle = "rgba(243, 241, 232, 0.24)";
+    context.strokeStyle = "rgba(242, 244, 241, 0.28)";
     context.lineWidth = 1;
+    routes.forEach((route, routeIndex) => {
+      const length = routeLengths[routeIndex];
+      context.setLineDash([Math.max(length * routeReveal, 1), length + 1]);
+      context.beginPath();
+      context.moveTo(route[0].x, route[0].y);
+      route.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+      context.stroke();
+    });
+    context.setLineDash([]);
+    context.strokeStyle = "rgba(64, 95, 174, 0.7)";
+    context.setLineDash([18, 14]);
+    context.lineDashOffset = -elapsed * 28;
     routes.forEach((route) => {
       context.beginPath();
       context.moveTo(route[0].x, route[0].y);
@@ -838,26 +946,44 @@ class DataFlowScene {
     context.restore();
 
     const primaryRoute = routes[Math.floor(routes.length / 2)];
-    this.drawTrustBloom(primaryRoute[primaryRoute.length - 1], time, compact);
-    primaryRoute.forEach((point, index) => this.drawNode(point, labels[index], index === labels.length - 1));
+    const bloomReveal = easeOutCubic(clamp((elapsed - 0.72) / 0.5));
+    this.drawTrustBloom(primaryRoute[primaryRoute.length - 1], time, compact, bloomReveal);
+    primaryRoute.forEach((point, index) => {
+      const nodeReveal = easeOutCubic(clamp((elapsed - index * 0.11) / 0.48));
+      this.drawNode(point, labels[index], index === labels.length - 1, nodeReveal);
+    });
 
     if (routes.length > 1) {
       routes.forEach((route, index) => {
-        if (index !== Math.floor(routes.length / 2)) this.drawNode(route[0], `SRC 0${index + 1}`);
+        if (index !== Math.floor(routes.length / 2)) {
+          this.drawNode(route[0], `SRC 0${index + 1}`, false, easeOutCubic(clamp(elapsed / 0.48)));
+        }
       });
     }
 
-    const elapsed = this.reducedMotion || this.userPaused ? 0.62 : (time - this.startTime) / 1000;
-    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#f3f1e8"];
-    const packetCount = compact ? 6 : 16;
+    const colors = [visualPalette.paper, visualPalette.blue, visualPalette.live];
+    const packetCount = compact ? 7 : 12;
 
     for (let index = 0; index < packetCount; index += 1) {
       const route = routes[index % routes.length];
+      const routeLength = routeLengths[index % routes.length];
       const progress = (elapsed * (0.13 + (index % 4) * 0.012) + index / packetCount) % 1;
-      const point = this.pointOnRoute(route, progress);
-      context.fillStyle = colors[index % colors.length];
+      const point = this.pointOnRoute(route, progress, routeLength);
+      const tail = this.pointOnRoute(route, Math.max(0, progress - 0.028), routeLength);
+      const color = colors[index % colors.length];
+      context.save();
+      context.globalAlpha = 0.28;
+      context.strokeStyle = color;
+      context.lineWidth = index % 4 === 0 ? 2 : 1;
+      context.beginPath();
+      context.moveTo(tail.x, tail.y);
+      context.lineTo(point.x, point.y);
+      context.stroke();
+      context.globalAlpha = 0.95;
+      context.fillStyle = color;
       const size = index % 5 === 0 ? 6 : 4;
       context.fillRect(point.x - size / 2, point.y - size / 2, size, size);
+      context.restore();
     }
 
   }
@@ -878,6 +1004,7 @@ class TrustBloomScene {
   private userPaused = false;
   private progress = 0.24;
   private startTime = performance.now();
+  private pausedElapsed = 0;
   private pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
   constructor(canvas: HTMLCanvasElement, section: HTMLElement, stage: HTMLElement) {
@@ -932,7 +1059,13 @@ class TrustBloomScene {
     });
 
     window.addEventListener("motionstatechange", (event) => {
-      this.userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+      const paused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+      if (paused && !this.userPaused) {
+        this.pausedElapsed = (performance.now() - this.startTime) / 1000;
+      } else if (!paused && this.userPaused) {
+        this.startTime = performance.now() - this.pausedElapsed * 1000;
+      }
+      this.userPaused = paused;
       this.draw(performance.now());
       this.updateLoop();
     });
@@ -997,7 +1130,7 @@ class TrustBloomScene {
   private drawGrid() {
     const context = this.context;
     context.save();
-    context.strokeStyle = "rgba(243, 241, 232, 0.075)";
+    context.strokeStyle = "rgba(242, 244, 241, 0.07)";
     context.lineWidth = 1;
     const step = this.width < 380 ? 28 : 34;
     for (let x = 0.5; x < this.width; x += step) {
@@ -1058,16 +1191,20 @@ class TrustBloomScene {
   private draw(time: number) {
     if (!this.width || !this.height) return;
     const context = this.context;
-    const elapsed = this.reducedMotion ? 0.7 : (time - this.startTime) / 1000;
+    const elapsed = this.reducedMotion
+      ? 1.2
+      : this.userPaused
+        ? this.pausedElapsed
+        : (time - this.startTime) / 1000;
     const open = this.reducedMotion ? 1 : easeOutCubic(clamp(this.progress * 1.22 + 0.04));
     const minSize = Math.min(this.width, this.height);
     const centerX = this.width / 2 + this.pointer.x;
     const centerY = this.height / 2 - minSize * 0.035 + this.pointer.y;
     const outerRadius = minSize * (0.2 + open * 0.23);
-    const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0", "#ffd447"];
+    const colors = [visualPalette.blue, visualPalette.live];
 
     context.clearRect(0, 0, this.width, this.height);
-    context.fillStyle = "#070908";
+    context.fillStyle = visualPalette.void;
     context.fillRect(0, 0, this.width, this.height);
     this.drawGrid();
 
@@ -1102,7 +1239,7 @@ class TrustBloomScene {
     }
 
     context.globalAlpha = 0.68;
-    context.strokeStyle = "#f3f1e8";
+    context.strokeStyle = visualPalette.paper;
     context.lineWidth = 1;
     context.setLineDash([2, 7]);
     [0.52, 0.78, 1].forEach((ratio) => {
@@ -1112,7 +1249,7 @@ class TrustBloomScene {
     });
     context.setLineDash([]);
 
-    const packetCount = this.width < 380 ? 14 : 24;
+    const packetCount = this.width < 380 ? 10 : 16;
     for (let index = 0; index < packetCount; index += 1) {
       const angle = (Math.PI * 2 * (index % outerPetals)) / outerPetals;
       const travel = this.reducedMotion
@@ -1128,17 +1265,17 @@ class TrustBloomScene {
     }
 
     context.globalAlpha = 1;
-    context.fillStyle = "#315cff";
+    context.fillStyle = visualPalette.blue;
     context.fillRect(-37, -37, 74, 74);
-    context.fillStyle = "#ff5a36";
+    context.fillStyle = "#27362f";
     context.fillRect(-31, -31, 62, 62);
-    context.fillStyle = "#070908";
+    context.fillStyle = visualPalette.void;
     context.fillRect(-25, -25, 50, 50);
     context.restore();
 
     context.save();
-    context.fillStyle = "rgba(243, 241, 232, 0.48)";
-    context.font = "8px IBM Plex Mono, monospace";
+    context.fillStyle = "rgba(242, 244, 241, 0.58)";
+    context.font = "10px IBM Plex Mono, monospace";
     context.fillText("SIGNAL / BLOOM", 14, 22);
     context.textAlign = "right";
     context.fillText(`${Math.round(open * 100)}% OPEN`, this.width - 14, 22);
@@ -1174,6 +1311,7 @@ setupRevealMotion();
 setupActiveNavigation();
 setupCounters();
 setupMotionSections();
+setupPortraitReveal();
 setupScrollMonitor();
 setupExperienceSpotlight();
 setupContactActions();
