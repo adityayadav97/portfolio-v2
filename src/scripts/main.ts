@@ -2,6 +2,10 @@ const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const easeOutCubic = (value: number) => 1 - (1 - value) ** 3;
+const smoothstep = (value: number) => {
+  const normalized = clamp(value);
+  return normalized * normalized * (3 - 2 * normalized);
+};
 const visualPalette = {
   void: "#080b0a",
   panel: "#111715",
@@ -38,7 +42,9 @@ function setupMenu() {
   const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
   const navigation = document.querySelector<HTMLElement>("[data-mobile-nav]");
   if (!button || !navigation) return;
-  const background = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
+  const background = Array.from(
+    document.querySelectorAll<HTMLElement>("main, footer, #flow-toggle"),
+  );
 
   const setBackgroundInert = (value: boolean) => {
     background.forEach((element) => {
@@ -225,6 +231,7 @@ function setupMotionSections() {
 
   const applyReducedMotionState = () => {
     hero?.style.setProperty("--hero-progress", "0");
+    document.documentElement.style.setProperty("--ambient-scroll-y", "0px");
     sections.forEach((section) => {
       section.classList.add("is-motion-active");
       section.style.setProperty("--section-progress", "1");
@@ -234,6 +241,11 @@ function setupMotionSections() {
       section.style.setProperty("--section-shift", "0px");
       section.style.setProperty("--section-rise", "18%");
       section.style.setProperty("--section-ribbon-x", "-6vw");
+      section.style.setProperty("--project-scan-y", "50%");
+      section.style.setProperty("--project-depth-x", "0px");
+      section.style.setProperty("--project-stage", "1");
+      section.style.setProperty("--dashboard-scale", "1");
+      section.style.setProperty("--project-line-dash", "0");
     });
   };
 
@@ -263,13 +275,21 @@ function setupMotionSections() {
       return;
     }
     const viewport = window.innerHeight;
+    document.documentElement.style.setProperty(
+      "--ambient-scroll-y",
+      `${((window.scrollY * 0.055) % 180).toFixed(2)}px`,
+    );
     if (hero) {
       const heroProgress = clamp(window.scrollY / Math.max(hero.offsetHeight * 0.75, 1));
       hero.style.setProperty("--hero-progress", heroProgress.toFixed(3));
     }
 
-    sections.forEach((section) => {
-      const bounds = section.getBoundingClientRect();
+    const sectionSnapshots = sections.map((section) => ({
+      section,
+      bounds: section.getBoundingClientRect(),
+    }));
+
+    sectionSnapshots.forEach(({ section, bounds }) => {
       if (bounds.bottom < -viewport || bounds.top > viewport * 2) return;
       const progress = clamp((viewport - bounds.top) / (viewport + bounds.height));
       const enter = easeOutCubic(clamp(progress / 0.24));
@@ -280,6 +300,11 @@ function setupMotionSections() {
       const sectionShift = (1 - enter) * 28 - exit * 18;
       const sectionRise = 72 - enter * 54;
       const ribbonX = progress * -10;
+      const projectScan = 8 + progress * 84;
+      const projectDepth = (progress - 0.5) * 22;
+      const projectStage = easeOutCubic(clamp((progress - 0.08) / 0.56));
+      const dashboardScale = 0.05 + projectStage * 0.95;
+      const projectLineDash = 900 * (1 - projectStage);
       section.style.setProperty("--section-progress", progress.toFixed(3));
       section.style.setProperty("--section-enter", enter.toFixed(3));
       section.style.setProperty("--section-focus", focus.toFixed(3));
@@ -287,6 +312,11 @@ function setupMotionSections() {
       section.style.setProperty("--section-shift", `${sectionShift.toFixed(2)}px`);
       section.style.setProperty("--section-rise", `${sectionRise.toFixed(2)}%`);
       section.style.setProperty("--section-ribbon-x", `${ribbonX.toFixed(2)}vw`);
+      section.style.setProperty("--project-scan-y", `${projectScan.toFixed(2)}%`);
+      section.style.setProperty("--project-depth-x", `${projectDepth.toFixed(2)}px`);
+      section.style.setProperty("--project-stage", projectStage.toFixed(3));
+      section.style.setProperty("--dashboard-scale", dashboardScale.toFixed(3));
+      section.style.setProperty("--project-line-dash", projectLineDash.toFixed(1));
       section.style.setProperty("--copy-shift", `${copyShift.toFixed(2)}px`);
       section.style.setProperty("--visual-shift", `${visualShift.toFixed(2)}px`);
       section.classList.toggle("is-motion-focus", focus > 0.7);
@@ -323,7 +353,7 @@ function setupPortraitReveal() {
   let queued = false;
 
   const apply = (progress: number) => {
-    const eased = easeOutCubic(progress);
+    const eased = smoothstep(progress);
     portrait.style.setProperty("--portrait-gray", (1 - eased).toFixed(3));
     portrait.style.setProperty("--portrait-saturation", (0.72 + eased * 0.38).toFixed(3));
     portrait.style.setProperty("--portrait-contrast", (1.08 - eased * 0.04).toFixed(3));
@@ -331,6 +361,8 @@ function setupPortraitReveal() {
     portrait.style.setProperty("--portrait-frame-y", `${(eased * 8).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-line-x", `${(eased * -6).toFixed(2)}px`);
     portrait.style.setProperty("--portrait-line-y", `${(eased * -6).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-focus", eased.toFixed(3));
+    portrait.style.setProperty("--portrait-scale", (1.035 - eased * 0.035).toFixed(3));
   };
 
   const update = () => {
@@ -346,10 +378,14 @@ function setupPortraitReveal() {
 
     const bounds = portrait.getBoundingClientRect();
     const viewport = window.innerHeight;
-    const progress = clamp((viewport * 0.9 - bounds.top) / Math.max(viewport * 0.58, 1));
+    const portraitCenter = bounds.top + bounds.height * 0.5;
+    const focusCenter = viewport * 0.52;
+    const focusDistance = Math.abs(portraitCenter - focusCenter);
+    const focusRange = Math.max(viewport * 0.68, bounds.height * 0.92, 1);
+    const progress = clamp(1 - focusDistance / focusRange);
     portrait.classList.toggle(
       "is-portrait-active",
-      bounds.bottom > 0 && bounds.top < viewport,
+      progress > 0.62 && bounds.bottom > 0 && bounds.top < viewport,
     );
     apply(progress);
     queued = false;
@@ -428,6 +464,7 @@ function setupScrollMonitor() {
     meter.style.transform = `scaleX(${progress.toFixed(3)})`;
     document.documentElement.style.setProperty("--active-accent", accent);
     document.body.classList.toggle("at-contact", section.dataset.scrollLabel === "Open channel");
+    document.body.classList.toggle("at-project", section.classList.contains("project-chapter"));
     railSegments.forEach((segment, index) => {
       segment.style.opacity = index === activeIndex % railSegments.length ? "1" : "0.34";
     });
@@ -518,6 +555,28 @@ function setupContactActions() {
       status.textContent = "";
     }, 2400);
   });
+}
+
+function setupBackToTop() {
+  const control = document.querySelector<HTMLElement>("[data-back-to-top]");
+  if (!control) return;
+
+  let queued = false;
+  const update = () => {
+    const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    const progress = clamp(window.scrollY / maxScroll);
+    control.style.setProperty("--back-progress-angle", `${(progress * 360).toFixed(1)}deg`);
+    queued = false;
+  };
+  const requestUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  update();
 }
 
 function setupTiltSurfaces() {
@@ -1035,6 +1094,10 @@ class TrustBloomScene {
     const visibilityObserver = new IntersectionObserver(
       ([entry]) => {
         this.visible = Boolean(entry?.isIntersecting);
+        if (this.visible) {
+          this.updateProgress();
+          this.draw(performance.now());
+        }
         this.updateLoop();
       },
       { rootMargin: "20% 0px 20% 0px", threshold: 0.01 },
@@ -1043,7 +1106,7 @@ class TrustBloomScene {
 
     let scrollQueued = false;
     const requestProgress = () => {
-      if (scrollQueued) return;
+      if (!this.visible || scrollQueued) return;
       scrollQueued = true;
       window.requestAnimationFrame(() => {
         this.updateProgress();
@@ -1283,7 +1346,7 @@ class TrustBloomScene {
 
     context.save();
     context.fillStyle = "rgba(242, 244, 241, 0.58)";
-    context.font = "10px IBM Plex Mono, monospace";
+    context.font = "11px IBM Plex Mono, monospace";
     context.fillText("SIGNAL / BLOOM", 14, 22);
     context.textAlign = "right";
     context.fillText(`${Math.round(open * 100)}% OPEN`, this.width - 14, 22);
@@ -1297,7 +1360,20 @@ function setupDataFlow() {
   try {
     new DataFlowScene(canvas);
   } catch {
-    document.querySelector<HTMLButtonElement>("#flow-toggle")?.remove();
+    const toggle = document.querySelector<HTMLButtonElement>("#flow-toggle");
+    const label = toggle?.querySelector<HTMLElement>("[data-flow-label]");
+    if (!toggle) return;
+    let paused = false;
+    toggle.addEventListener("click", () => {
+      paused = !paused;
+      const action = paused ? "Resume motion" : "Pause motion";
+      toggle.setAttribute("aria-pressed", String(paused));
+      toggle.setAttribute("aria-label", action);
+      toggle.setAttribute("title", action);
+      if (label) label.textContent = action;
+      document.body.classList.toggle("motion-paused", paused);
+      window.dispatchEvent(new CustomEvent("motionstatechange", { detail: { paused } }));
+    });
   }
 }
 
@@ -1323,6 +1399,7 @@ setupPortraitReveal();
 setupScrollMonitor();
 setupExperienceSpotlight();
 setupContactActions();
+setupBackToTop();
 setupTiltSurfaces();
 setupCapabilitySpotlight();
 setupDataFlow();

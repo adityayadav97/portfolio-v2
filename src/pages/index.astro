@@ -5,6 +5,8 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "@fontsource/instrument-serif";
 import "../styles/global.css";
 import {
+  Activity,
+  ArrowUp,
   ArrowDownRight,
   ArrowUpRight,
   Award,
@@ -13,6 +15,7 @@ import {
   ContactRound,
   Copy,
   Database,
+  ExternalLink,
   FileText,
   Mail,
   Menu,
@@ -72,6 +75,24 @@ const experiences = [
 const projects = [
   {
     number: "01",
+    id: "benchbuddy",
+    kind: "Featured AI product",
+    title: "BenchBuddy AI",
+    statement: "Award-winning answers, grounded in evidence and built to know when to escalate.",
+    description:
+      "An award-winning PMO knowledge assistant built around retrieval, confidence calibration, and explicit guardrails. It stays grounded in an approved knowledge base and escalates when certainty is not enough.",
+    metrics: [
+      ["11/11", "tests passing"],
+      ["<5s", "cold start"],
+      ["2026", "Gen-AI Kata winner"],
+    ],
+    stack: ["Python", "FastAPI", "TF-IDF", "Streamlit", "pytest"],
+    repo: "https://github.com/adityayadav97/benchbuddy-ai",
+    live: "https://benchbuddy.streamlit.app/",
+    featured: true,
+  },
+  {
+    number: "02",
     id: "lakehouse",
     kind: "Batch systems",
     title: "Retail Lakehouse Pipeline",
@@ -87,7 +108,7 @@ const projects = [
     repo: "https://github.com/adityayadav97/retail-lakehouse-pipeline",
   },
   {
-    number: "02",
+    number: "03",
     id: "streaming",
     kind: "Streaming systems",
     title: "Real-Time Events Pipeline",
@@ -101,23 +122,6 @@ const projects = [
     ],
     stack: ["Kafka", "Spark Streaming", "Delta Lake", "dbt", "Airflow"],
     repo: "https://github.com/adityayadav97/realtime-events-pipeline",
-  },
-  {
-    number: "03",
-    id: "benchbuddy",
-    kind: "Applied AI",
-    title: "BenchBuddy AI",
-    statement: "Useful answers with evidence, confidence, and a clean escalation path.",
-    description:
-      "An award-winning PMO knowledge assistant built around retrieval, confidence calibration, and explicit guardrails. It stays grounded in an approved knowledge base and escalates when certainty is not enough.",
-    metrics: [
-      ["11/11", "tests passing"],
-      ["<5s", "cold start"],
-      ["2026", "Gen-AI Kata winner"],
-    ],
-    stack: ["Python", "FastAPI", "TF-IDF", "Streamlit", "pytest"],
-    repo: "https://github.com/adityayadav97/benchbuddy-ai",
-    live: "https://benchbuddy.streamlit.app/",
   },
   {
     number: "04",
@@ -280,6 +284,14 @@ const schema = {
       <span class="scroll-monitor-signal"></span>
       <p><b data-scroll-index>00</b><span data-scroll-label>Identity</span></p>
       <i><span data-scroll-meter></span></i>
+    </div>
+    <div class="ambient-data-field" aria-hidden="true" data-ambient-field>
+      <div class="ambient-route ambient-route-left"><i></i><i></i><i></i></div>
+      <div class="ambient-route ambient-route-right"><i></i><i></i><i></i></div>
+      <span class="ambient-node ambient-node-a"></span>
+      <span class="ambient-node ambient-node-b"></span>
+      <span class="ambient-node ambient-node-c"></span>
+      <span class="ambient-node ambient-node-d"></span>
     </div>
 
     <header class="site-header" data-header>
@@ -465,7 +477,7 @@ const schema = {
           <div class="manifesto-copy" data-reveal>
             <h2>
               Data is not valuable when it lands. It is valuable when the next
-              person can rely on it.
+              person can <span class="kinetic-word">rely on it.</span>
             </h2>
             <p>
               My work sits between raw systems and real decisions: migrating
@@ -546,8 +558,8 @@ const schema = {
           <p class="chapter-label">03 / Selected systems</p>
           <h2>Four builds. Four different ways to make data useful.</h2>
           <p class="section-summary">
-            Every project exposes the architecture, the constraint, and the
-            proof. No placeholder demos. No invented live links.
+            Award-winning AI leads the set. Every project exposes the architecture,
+            the constraint, and the proof behind the interface.
           </p>
         </div>
       </section>
@@ -579,28 +591,58 @@ const schema = {
               <div class="project-meta" data-reveal>
                 <p>{project.number}</p>
                 <span>{project.kind}</span>
+                {project.featured && (
+                  <div class="featured-project-status">
+                    <strong class="featured-project-badge">
+                      <Sparkles size={15} aria-hidden="true" /> 2026 Gen-AI Kata Winner
+                    </strong>
+                    <span class="featured-live-state"><i aria-hidden="true"></i> Live product</span>
+                  </div>
+                )}
               </div>
 
               <div class="project-copy" data-reveal>
-                <h3>{project.title}</h3>
+                <h3>
+                  {project.id === "benchbuddy" ? (
+                    <>BenchBuddy <span class="kinetic-word">AI</span></>
+                  ) : project.title}
+                </h3>
                 <p class="project-statement">{project.statement}</p>
                 <p class="project-description">{project.description}</p>
                 <ul class="stack-list" aria-label={`${project.title} technology stack`}>
                   {project.stack.map((item) => <li>{item}</li>)}
                 </ul>
                 <div class="project-links">
-                  <a href={project.repo} target="_blank" rel="noreferrer">
-                    <CodeXml size={18} aria-hidden="true" />
-                    Source
-                    <ArrowUpRight size={16} aria-hidden="true" />
-                  </a>
                   {project.live && (
-                    <a href={project.live} target="_blank" rel="noreferrer">
+                    <a
+                      class="project-action project-action-live"
+                      href={project.live}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Launch ${project.title} live experience (opens in a new tab)`}
+                    >
                       <Sparkles size={18} aria-hidden="true" />
-                      Live product
-                      <ArrowUpRight size={16} aria-hidden="true" />
+                      {project.id === "benchbuddy" ? "Try BenchBuddy AI" : "Launch live experience"}
+                      <ExternalLink size={16} aria-hidden="true" />
                     </a>
                   )}
+                  <a
+                    class="project-action project-action-source"
+                    href={project.repo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Inspect ${project.title} source code (opens in a new tab)`}
+                  >
+                    <CodeXml size={18} aria-hidden="true" />
+                    {
+                      project.id === "benchbuddy"
+                        ? "Review source & tests"
+                        : project.id === "dashboard"
+                          ? "View dashboard source"
+                          : "View pipeline source"
+                    }
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </a>
                 </div>
               </div>
 
@@ -619,6 +661,11 @@ const schema = {
                 data-reveal
                 data-tilt-surface
               >
+                <div class="visual-chrome" aria-hidden="true">
+                  <span>{project.featured ? "LIVE PRODUCT" : "SCROLL PLAYBACK"}</span>
+                  <i></i>
+                  <b>{project.number}</b>
+                </div>
                 {project.id === "lakehouse" && (
                   <div class="lakehouse-flow" aria-hidden="true">
                     <div class="flow-node raw-node"><span>RAW</span><b>1,052,000</b></div>
@@ -652,17 +699,22 @@ const schema = {
                 {project.id === "benchbuddy" && (
                   <div class="assistant-ui" aria-hidden="true">
                     <div class="assistant-topline">
-                      <span>BENCHBUDDY / QUERY 042</span><b>3 MS</b>
+                      <span>BENCHBUDDY / GROUNDED MODE</span><b>LIVE</b>
+                    </div>
+                    <div class="assistant-retrieval">
+                      <span>KNOWLEDGE</span><i></i><span>RETRIEVE</span><i></i><span>ANSWER</span>
                     </div>
                     <p>Can I claim an AWS certification reimbursement?</p>
                     <div class="assistant-answer">
-                      <span>GROUNDED RESPONSE</span>
+                      <span>GROUNDED RESPONSE / 2 APPROVED SOURCES</span>
                       <strong>Yes. Submit the approved certificate and invoice in the reimbursement portal.</strong>
+                      <div class="assistant-confidence"><i></i></div>
                     </div>
                     <div class="assistant-signals">
                       <span>Confidence <b>95%</b></span>
-                      <span>Category <b>Certification</b></span>
+                      <span>Evidence <b>Policy 4.2</b></span>
                       <span>Status <b>Answered</b></span>
+                      <span>Escalate <b>Below 70%</b></span>
                     </div>
                   </div>
                 )}
@@ -679,9 +731,25 @@ const schema = {
                       <span><small>Freshness</small><b>2m</b></span>
                     </div>
                     <div class="dashboard-chart">
-                      {[36, 62, 44, 78, 58, 88, 72, 94].map((height) => (
-                        <i style={`--bar:${height}%`}></i>
-                      ))}
+                      <div class="dashboard-bars">
+                        {[36, 62, 44, 78, 58, 88, 72, 94].map((height) => (
+                          <i style={`--bar:${height}%`}></i>
+                        ))}
+                      </div>
+                      <svg
+                        class="dashboard-trend"
+                        viewBox="0 0 640 120"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <polyline points="0,92 80,76 160,83 240,52 320,61 400,32 480,42 560,18 640,24" />
+                      </svg>
+                      <span class="dashboard-playhead"></span>
+                    </div>
+                    <div class="dashboard-live-row">
+                      <span><Activity size={15} aria-hidden="true" /> Scroll playback</span>
+                      <b>00:02</b>
                     </div>
                     <div class="dashboard-foot">
                       <span>Bronze</span><span>Silver</span><span>Gold</span><span>Marts</span>
@@ -807,7 +875,7 @@ const schema = {
         <div class="grid-shell about-grid">
           <p class="chapter-label dark-label" data-reveal>06 / About</p>
           <div class="about-copy" data-reveal>
-            <h2>Engineer the system. Explain the decision. Own the outcome.</h2>
+            <h2>Engineer the system. Explain the decision. <span class="kinetic-word">Own the outcome.</span></h2>
             <p>
               I am a Computer Science graduate specializing in Big Data
               Analytics, now building and migrating enterprise data systems at
@@ -853,7 +921,7 @@ const schema = {
             Open to Data Engineer roles / Gurgaon or remote
           </div>
           <p class="chapter-label" data-reveal>07 / Open channel</p>
-          <h2 id="contact-title" data-reveal>Let's move data forward.</h2>
+          <h2 id="contact-title" data-reveal>Let's move data <span class="kinetic-word">forward.</span></h2>
           <div class="contact-email-wrap" data-reveal>
             <a
               class="contact-email"
@@ -930,7 +998,10 @@ const schema = {
       <div class="grid-shell footer-grid">
         <p>Aditya Yadav / Data Engineer</p>
         <p>Built for signal, scale, and trust.</p>
-        <a href="#top">Back to top <ArrowUpRight size={16} aria-hidden="true" /></a>
+        <a class="back-to-top" href="#top" data-back-to-top>
+          <span>Back to top</span>
+          <i aria-hidden="true"><ArrowUp size={19} /></i>
+        </a>
       </div>
     </footer>
 

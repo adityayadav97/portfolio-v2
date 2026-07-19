@@ -5,9 +5,15 @@ import { test } from "node:test";
 const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
 const assetFiles = await readdir(new URL("../dist/_astro/", import.meta.url));
 const cssFiles = assetFiles.filter((file) => file.endsWith(".css"));
+const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
 const css = (
   await Promise.all(
     cssFiles.map((file) => readFile(new URL(`../dist/_astro/${file}`, import.meta.url), "utf8")),
+  )
+).join("\n");
+const js = (
+  await Promise.all(
+    jsFiles.map((file) => readFile(new URL(`../dist/_astro/${file}`, import.meta.url), "utf8")),
   )
 ).join("\n");
 
@@ -76,6 +82,29 @@ test("premium scroll hooks and experience hierarchy ship in production", () => {
   assert.match(html, /data-portrait/);
   assert.match(css, /--portrait-gray/);
   assert.match(css, /telemetry-scan/);
+});
+
+test("featured project and cinematic interaction hooks ship in production", () => {
+  const orderedProjectIds = ["benchbuddy", "lakehouse", "streaming", "dashboard"];
+  const projectPositions = orderedProjectIds.map((id) => html.indexOf(`id="${id}"`));
+  assert.ok(projectPositions.every((position) => position >= 0));
+  assert.deepEqual(projectPositions, [...projectPositions].sort((a, b) => a - b));
+  orderedProjectIds.forEach((_, index) => {
+    const sectionMarkup = html.slice(projectPositions[index], projectPositions[index] + 700);
+    assert.match(sectionMarkup, new RegExp(`data-project-index="0${index + 1}"`));
+  });
+  assert.match(html, /Featured AI product/);
+  assert.match(html, /Try BenchBuddy AI/);
+  assert.match(html, /Review source &amp; tests/);
+  assert.match(html, /class="assistant-retrieval"/);
+  assert.match(html, /class="dashboard-playhead"/);
+  assert.match(html, /data-ambient-field/);
+  assert.match(html, /data-back-to-top/);
+  assert.match(css, /\.ambient-data-field/);
+  assert.match(css, /\.featured-project-badge/);
+  assert.match(js, /--portrait-focus/);
+  assert.match(js, /--project-line-dash/);
+  assert.match(js, /back-progress-angle/);
 });
 
 test("the broken retail dashboard live link is not published", () => {
