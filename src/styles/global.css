@@ -129,14 +129,7 @@ svg {
   background: var(--signal);
   transform: scaleX(0);
   transform-origin: left center;
-  animation: page-progress linear;
-  animation-timeline: scroll(root block);
-}
-
-@keyframes page-progress {
-  to {
-    transform: scaleX(1);
-  }
+  will-change: transform;
 }
 
 .site-header {
@@ -4372,12 +4365,6 @@ body.motion-paused .contact-link-icon svg {
 
   .dashboard-trend polyline {
     stroke-dashoffset: 0;
-  }
-}
-
-@supports not (animation-timeline: scroll()) {
-  .scroll-progress {
-    display: none;
   }
 }
 

@@ -95,7 +95,7 @@ const projects = [
     ],
     stack: ["Python", "FastAPI", "TF-IDF", "Streamlit", "pytest"],
     repo: "https://github.com/adityayadav97/benchbuddy-ai",
-    live: undefined,
+    live: "https://benchbuddy.streamlit.app/?embed=true",
     featured: true,
   },
   {
@@ -135,11 +135,11 @@ const projects = [
   {
     number: "04",
     id: "dashboard",
-    kind: "Analytics product / deploy-ready",
+    kind: "Live analytics product",
     title: "Retail Analytics Dashboard",
     statement: "Gold-layer data, shaped for decisions instead of another table dump.",
     description:
-      "A deploy-ready Streamlit dashboard for revenue KPIs, customer value tiers, quality gates, and pipeline health, with public source and reproducible setup.",
+      "A live Streamlit dashboard for revenue KPIs, customer value tiers, quality gates, and pipeline health, backed by public source and reproducible setup.",
     metrics: [
       ["5", "analysis surfaces"],
       ["4", "quality signals"],
@@ -147,7 +147,7 @@ const projects = [
     ],
     stack: ["Streamlit", "Plotly", "Pandas", "Python"],
     repo: "https://github.com/adityayadav97/retail-analytics-dashboard",
-    live: undefined,
+    live: "https://retail-analytic-dashboard.streamlit.app/?embed=true",
   },
 ];
 
@@ -678,7 +678,7 @@ const schema = {
                     <strong class="featured-project-badge">
                       <Sparkles size={15} aria-hidden="true" /> 2026 Gen-AI Kata Winner
                     </strong>
-                    <span class="featured-live-state"><i aria-hidden="true"></i> Award-winning build</span>
+                    <span class="featured-live-state"><i aria-hidden="true"></i> Live demo · Public access</span>
                   </div>
                 )}
               </div>
@@ -704,7 +704,13 @@ const schema = {
                       aria-label={`Launch ${project.title} live experience (opens in a new tab)`}
                     >
                       <Sparkles size={18} aria-hidden="true" />
-                      {project.id === "benchbuddy" ? "Try BenchBuddy AI" : "Launch live experience"}
+                      {
+                        project.id === "benchbuddy"
+                          ? "Try BenchBuddy AI"
+                          : project.id === "dashboard"
+                            ? "Open live dashboard"
+                            : "Launch live experience"
+                      }
                       <ExternalLink size={16} aria-hidden="true" />
                     </a>
                   )}

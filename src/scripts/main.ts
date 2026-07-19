@@ -39,6 +39,29 @@ function setupHeader() {
   update();
 }
 
+function setupScrollProgress() {
+  const progress = document.querySelector<HTMLElement>(".scroll-progress");
+  if (!progress) return;
+
+  let queued = false;
+  const update = () => {
+    const scrollRange = document.documentElement.scrollHeight - window.innerHeight;
+    const ratio = scrollRange > 0 ? clamp(window.scrollY / scrollRange) : 0;
+    progress.style.transform = `scaleX(${ratio})`;
+    queued = false;
+  };
+  const queueUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", queueUpdate, { passive: true });
+  window.addEventListener("resize", queueUpdate);
+  window.addEventListener("pageshow", queueUpdate);
+  update();
+}
+
 function setupMenu() {
   const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
   const navigation = document.querySelector<HTMLElement>("[data-mobile-nav]");
@@ -2077,6 +2100,7 @@ function setupTrustBloom() {
 }
 
 setupHeader();
+setupScrollProgress();
 setupMenu();
 setupRevealMotion();
 setupActiveNavigation();

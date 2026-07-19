@@ -97,6 +97,7 @@ test("contact actions use browser-reliable destinations and controls", () => {
 
 test("premium scroll hooks and experience hierarchy ship in production", () => {
   assert.match(html, /class="scroll-monitor"/);
+  assert.match(js, /style\.transform=`scaleX\(\$\{/);
   assert.match(html, /data-experience-row/);
   assert.match(html, /data-motion-kind="experience"/);
   assert.match(css, /\.experience-row\.is-experience-active/);
@@ -118,8 +119,9 @@ test("featured project and cinematic interaction hooks ship in production", () =
     const sectionMarkup = html.slice(projectPositions[index], projectPositions[index] + 700);
     assert.match(sectionMarkup, new RegExp(`data-project-index="0${index + 1}"`));
   });
-  assert.match(html, /Award-winning build/);
-  assert.doesNotMatch(html, /Try BenchBuddy AI|benchbuddy\.streamlit\.app/);
+  assert.match(html, /Live demo · Public access/);
+  assert.match(html, /Try BenchBuddy AI/);
+  assert.match(html, /https:\/\/benchbuddy\.streamlit\.app\/\?embed=true/);
   assert.match(html, /Review source &amp; tests/);
   assert.match(html, /class="assistant-retrieval"/);
   assert.match(html, /class="dashboard-playhead"/);
@@ -149,12 +151,14 @@ test("dimensional visual system and compact systems layout ship in production", 
   assert.match(css, /--electric-cyan/);
 });
 
-test("the broken retail dashboard live link is not published", () => {
+test("verified public project demos are published", () => {
   assert.doesNotMatch(html, /ADD_RETAIL_DASHBOARD_URL/);
   assert.match(html, /retail-analytics-dashboard/);
-  assert.match(html, /Analytics product \/ deploy-ready/);
+  assert.match(html, /Live analytics product/);
+  assert.match(html, /https:\/\/retail-analytic-dashboard\.streamlit\.app\/\?embed=true/);
+  assert.match(html, /Open live dashboard/);
   assert.match(html, /Review dashboard code &amp; setup/);
-  assert.doesNotMatch(html, /not yet live/i);
+  assert.doesNotMatch(html, /not yet live|deploy-ready/i);
 });
 
 test("public claims remain precise and evidence-aligned", () => {
