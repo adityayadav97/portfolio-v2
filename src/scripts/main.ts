@@ -654,12 +654,15 @@ class DataFlowScene {
     }
 
     this.toggle?.addEventListener("click", () => {
+      const now = performance.now();
       this.userPaused = !this.userPaused;
       if (this.userPaused) {
-        this.pausedElapsed = (performance.now() - this.startTime) / 1000;
+        this.pausedElapsed = (now - this.startTime) / 1000;
+        this.updateThroughput(this.pausedElapsed);
       } else {
-        this.startTime = performance.now() - this.pausedElapsed * 1000;
+        this.startTime = now - this.pausedElapsed * 1000;
       }
+      this.lastMetricUpdate = now;
       this.toggle?.setAttribute("aria-pressed", String(this.userPaused));
       const action = this.userPaused ? "Resume motion" : "Pause motion";
       this.toggle?.setAttribute("title", action);
@@ -689,6 +692,12 @@ class DataFlowScene {
     return this.visible && this.pageVisible && !this.userPaused && !this.reducedMotion;
   }
 
+  private updateThroughput(elapsed: number) {
+    if (!this.throughput) return;
+    const value = 10.4 + Math.sin(elapsed / 0.95) * 0.6;
+    this.throughput.textContent = `${value.toFixed(1)}k/min`;
+  }
+
   private updateLoop() {
     if (this.shouldAnimate() && !this.frame) {
       this.frame = window.requestAnimationFrame((time) => this.tick(time));
@@ -705,8 +714,7 @@ class DataFlowScene {
     this.draw(time);
 
     if (this.throughput && time - this.lastMetricUpdate > 220) {
-      const value = 10.4 + Math.sin((time - this.startTime) / 950) * 0.6;
-      this.throughput.textContent = `${value.toFixed(1)}k/min`;
+      this.updateThroughput((time - this.startTime) / 1000);
       this.lastMetricUpdate = time;
     }
 

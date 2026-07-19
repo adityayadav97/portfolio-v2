@@ -450,8 +450,10 @@ svg {
 
 .flow-control {
   position: fixed;
-  right: 18px;
-  bottom: 28px;
+  top: 14px;
+  right: auto;
+  bottom: auto;
+  left: 200px;
   z-index: 480;
   display: inline-flex;
   align-items: center;
@@ -4140,6 +4142,7 @@ body.at-contact .flow-control {
     top: 14px;
     right: 100px;
     bottom: auto;
+    left: auto;
   }
 
   .experience .section-heading {
@@ -4203,6 +4206,7 @@ body.at-contact .flow-control {
     top: 10px;
     right: 92px;
     bottom: auto;
+    left: auto;
   }
 
   .hero h1 {
