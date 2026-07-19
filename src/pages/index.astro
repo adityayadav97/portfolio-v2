@@ -308,9 +308,9 @@ const schema = {
         <a href="#contact">Contact</a>
       </nav>
 
-      <a class="header-cta" href="#contact" aria-label="Open channel: jump to contact options">
+      <a class="header-cta" href="#contact" aria-label="Let's talk: jump to contact options">
         <Mail size={17} stroke-width={1.8} aria-hidden="true" />
-        <span>Open channel</span>
+        <span>Let's talk</span>
       </a>
 
       <button
@@ -374,6 +374,20 @@ const schema = {
         data-scroll-label="Identity"
       >
         <canvas id="data-flow" aria-hidden="true"></canvas>
+        <div class="hero-depth-hud" aria-hidden="true">
+          <div class="hero-depth-readout">
+            <span>DATA PLANE / RUN 042</span>
+            <b><i></i> LIVE</b>
+          </div>
+          <div class="hero-depth-axis">
+            <span><small>INPUT</small> 3 FEEDS</span>
+            <span><small>FLOW</small> 10.4K/MIN</span>
+            <span><small>QUALITY</small> 15/15</span>
+          </div>
+          <i class="hero-depth-shard hero-depth-shard-a"></i>
+          <i class="hero-depth-shard hero-depth-shard-b"></i>
+          <i class="hero-depth-shard hero-depth-shard-c"></i>
+        </div>
         <div class="hero-grid grid-shell">
           <div class="hero-kicker" data-reveal>
             <span class="status-dot" aria-hidden="true"></span>
@@ -668,6 +682,11 @@ const schema = {
                 </div>
                 {project.id === "lakehouse" && (
                   <div class="lakehouse-flow" aria-hidden="true">
+                    <aside class="flow-runline">
+                      <span><i></i> RUN 042</span>
+                      <span>1.05M ROWS</span>
+                      <span>0 REJECTED</span>
+                    </aside>
                     <div class="flow-node raw-node"><span>RAW</span><b>1,052,000</b></div>
                     <i></i>
                     <div class="flow-node bronze-node"><span>BRONZE</span><b>INGEST</b></div>
@@ -794,8 +813,12 @@ const schema = {
               to operate than it was before.
             </p>
 
-            <div class="bloom-stage" data-bloom-stage data-reveal>
+            <div class="bloom-stage" data-bloom-stage data-reveal data-tilt-surface>
               <canvas id="trust-bloom" aria-hidden="true"></canvas>
+              <div class="bloom-telemetry" aria-hidden="true">
+                <span><i></i> 4 LAYERS</span>
+                <b>15 GATES</b>
+              </div>
               <div class="bloom-core-copy" aria-hidden="true">
                 <span>TRUST LAYER</span>
                 <strong>LIVE</strong>
@@ -909,7 +932,7 @@ const schema = {
         data-section="contact"
         data-motion-section
         data-motion-kind="contact"
-        data-scroll-label="Open channel"
+        data-scroll-label="Contact"
         aria-labelledby="contact-title"
       >
         <div class="contact-signal" aria-hidden="true">
@@ -920,7 +943,7 @@ const schema = {
             <span class="status-dot" aria-hidden="true"></span>
             Open to Data Engineer roles / Gurgaon or remote
           </div>
-          <p class="chapter-label" data-reveal>07 / Open channel</p>
+          <p class="chapter-label" data-reveal>07 / Contact</p>
           <h2 id="contact-title" data-reveal>Let's move data <span class="kinetic-word">forward.</span></h2>
           <div class="contact-email-wrap" data-reveal>
             <a

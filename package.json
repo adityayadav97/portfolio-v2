@@ -14,10 +14,12 @@
     "@fontsource/ibm-plex-mono": "^5.2.6",
     "@fontsource/instrument-serif": "^5.2.5",
     "@lucide/astro": "^1.25.0",
-    "astro": "^7.1.1"
+    "astro": "^7.1.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@types/three": "^0.185.1",
     "typescript": "^5.9.2"
   }
 }

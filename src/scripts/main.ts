@@ -353,21 +353,25 @@ function setupPortraitReveal() {
   let queued = false;
 
   const apply = (progress: number) => {
-    const eased = smoothstep(progress);
-    portrait.style.setProperty("--portrait-gray", (1 - eased).toFixed(3));
-    portrait.style.setProperty("--portrait-saturation", (0.72 + eased * 0.38).toFixed(3));
-    portrait.style.setProperty("--portrait-contrast", (1.08 - eased * 0.04).toFixed(3));
-    portrait.style.setProperty("--portrait-frame-x", `${(eased * 8).toFixed(2)}px`);
-    portrait.style.setProperty("--portrait-frame-y", `${(eased * 8).toFixed(2)}px`);
-    portrait.style.setProperty("--portrait-line-x", `${(eased * -6).toFixed(2)}px`);
-    portrait.style.setProperty("--portrait-line-y", `${(eased * -6).toFixed(2)}px`);
-    portrait.style.setProperty("--portrait-focus", eased.toFixed(3));
-    portrait.style.setProperty("--portrait-scale", (1.035 - eased * 0.035).toFixed(3));
+    const grayscale = smoothstep(progress);
+    const colorFocus = 1 - grayscale;
+    portrait.style.setProperty("--portrait-gray", grayscale.toFixed(3));
+    portrait.style.setProperty(
+      "--portrait-saturation",
+      (1.1 - grayscale * 0.38).toFixed(3),
+    );
+    portrait.style.setProperty("--portrait-contrast", (1.04 + grayscale * 0.04).toFixed(3));
+    portrait.style.setProperty("--portrait-frame-x", `${(colorFocus * 8).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-frame-y", `${(colorFocus * 8).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-line-x", `${(colorFocus * -6).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-line-y", `${(colorFocus * -6).toFixed(2)}px`);
+    portrait.style.setProperty("--portrait-focus", colorFocus.toFixed(3));
+    portrait.style.setProperty("--portrait-scale", (1 + colorFocus * 0.035).toFixed(3));
   };
 
   const update = () => {
     if (reducedMotion) {
-      apply(1);
+      apply(0);
       queued = false;
       return;
     }
@@ -378,14 +382,12 @@ function setupPortraitReveal() {
 
     const bounds = portrait.getBoundingClientRect();
     const viewport = window.innerHeight;
-    const portraitCenter = bounds.top + bounds.height * 0.5;
-    const focusCenter = viewport * 0.52;
-    const focusDistance = Math.abs(portraitCenter - focusCenter);
-    const focusRange = Math.max(viewport * 0.68, bounds.height * 0.92, 1);
-    const progress = clamp(1 - focusDistance / focusRange);
+    const progress = clamp(
+      (viewport * 0.72 - bounds.top) / Math.max(viewport * 0.54, 1),
+    );
     portrait.classList.toggle(
       "is-portrait-active",
-      progress > 0.62 && bounds.bottom > 0 && bounds.top < viewport,
+      progress < 0.38 && bounds.bottom > 0 && bounds.top < viewport,
     );
     apply(progress);
     queued = false;
@@ -463,7 +465,7 @@ function setupScrollMonitor() {
     labelOutput.textContent = section.dataset.scrollLabel ?? "Signal";
     meter.style.transform = `scaleX(${progress.toFixed(3)})`;
     document.documentElement.style.setProperty("--active-accent", accent);
-    document.body.classList.toggle("at-contact", section.dataset.scrollLabel === "Open channel");
+    document.body.classList.toggle("at-contact", section.id === "contact");
     document.body.classList.toggle("at-project", section.classList.contains("project-chapter"));
     railSegments.forEach((segment, index) => {
       segment.style.opacity = index === activeIndex % railSegments.length ? "1" : "0.34";
@@ -740,7 +742,8 @@ class DataFlowScene {
     const bounds = this.canvas.getBoundingClientRect();
     this.width = Math.max(1, bounds.width);
     this.height = Math.max(1, bounds.height);
-    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dprCeiling = window.innerWidth <= 700 ? 1.25 : 1.5;
+    this.dpr = Math.min(window.devicePixelRatio || 1, dprCeiling);
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
     this.context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -788,7 +791,7 @@ class DataFlowScene {
     const shiftY = this.pointer.y;
 
     if (compact) {
-      const y = this.height * (this.width < 700 ? 0.92 : 0.94) + shiftY;
+      const y = this.height * (this.width < 700 ? 0.97 : 0.94) + shiftY;
       const points = [0.09, 0.295, 0.5, 0.705, 0.91].map((ratio, index) => ({
         x: this.width * ratio + shiftX * (index / 5),
         y,
@@ -962,7 +965,7 @@ class DataFlowScene {
     context.fillRect(x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
     context.strokeRect(x - nodeWidth / 2, point.y - nodeHeight / 2, nodeWidth, nodeHeight);
     context.fillStyle = active ? "#101513" : "#d9ded9";
-    context.font = `600 ${compact ? 11 : 12}px IBM Plex Mono, monospace`;
+    context.font = `600 ${veryCompact ? 10 : compact ? 12 : 13}px IBM Plex Mono, monospace`;
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillText(label, x, point.y + 0.5);
@@ -1354,11 +1357,25 @@ class TrustBloomScene {
   }
 }
 
-function setupDataFlow() {
+async function setupDataFlow() {
   const canvas = document.querySelector<HTMLCanvasElement>("#data-flow");
   if (!canvas) return;
+  let fallbackCanvas = canvas;
+
+  if (!reducedMotionQuery.matches && window.innerWidth > 680) {
+    try {
+      const { ThreeDataFlowScene } = await import("./three-flow");
+      new ThreeDataFlowScene(canvas);
+      return;
+    } catch (error) {
+      console.warn("3D data-flow scene unavailable; using the lightweight canvas.", error);
+      fallbackCanvas = canvas.cloneNode(false) as HTMLCanvasElement;
+      canvas.replaceWith(fallbackCanvas);
+    }
+  }
+
   try {
-    new DataFlowScene(canvas);
+    new DataFlowScene(fallbackCanvas);
   } catch {
     const toggle = document.querySelector<HTMLButtonElement>("#flow-toggle");
     const label = toggle?.querySelector<HTMLElement>("[data-flow-label]");

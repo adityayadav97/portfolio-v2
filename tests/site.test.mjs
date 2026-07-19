@@ -54,7 +54,8 @@ test("motion and mobile navigation have accessible fallbacks", () => {
 });
 
 test("contact actions use browser-reliable destinations and controls", () => {
-  assert.match(html, /href="#contact" aria-label="Open channel: jump to contact options"/);
+  assert.match(html, /href="#contact" aria-label="Let's talk: jump to contact options"/);
+  assert.match(html, /data-scroll-label="Contact"/);
   assert.match(html, /https:\/\/mail\.google\.com\/mail\/\?view=cm&amp;fs=1&amp;to=adityayadav8g@gmail\.com/);
   assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com \(opens in a new tab\)"/);
   assert.match(html, /data-copy-email/);
@@ -105,6 +106,16 @@ test("featured project and cinematic interaction hooks ship in production", () =
   assert.match(js, /--portrait-focus/);
   assert.match(js, /--project-line-dash/);
   assert.match(js, /back-progress-angle/);
+});
+
+test("dimensional visual system and compact systems layout ship in production", () => {
+  assert.match(html, /class="hero-depth-hud"/);
+  assert.match(html, /class="flow-runline"/);
+  assert.match(html, /class="bloom-telemetry"/);
+  assert.match(js, /ThreeDataFlowScene/);
+  assert.match(js, /cloneNode/);
+  assert.doesNotMatch(css, /min-height:130svh/);
+  assert.match(css, /--electric-cyan/);
 });
 
 test("the broken retail dashboard live link is not published", () => {
