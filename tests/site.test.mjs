@@ -18,7 +18,7 @@ const js = (
 ).join("\n");
 
 test("build has canonical metadata and semantic landmarks", () => {
-  assert.match(html, /<link rel="canonical" href="https:\/\/adityayadav97\.github\.io\/portfolio-v2\/"/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/adityayadav97\.github\.io\/"/);
   assert.match(html, /<main id="main-content">/);
   assert.match(html, /<nav[^>]+aria-label="Primary navigation"/);
   assert.match(html, /application\/ld\+json/);
@@ -30,11 +30,12 @@ test("GitHub Pages asset paths include the project base", () => {
 });
 
 test("social sharing metadata ships with its visual", async () => {
-  assert.match(html, /property="og:image" content="https:\/\/adityayadav97\.github\.io\/portfolio-v2\/og\.png"/);
+  assert.match(html, /property="og:image" content="https:\/\/adityayadav97\.github\.io\/og\.jpg"/);
   assert.match(html, /name="twitter:card" content="summary_large_image"/);
 
-  const socialImage = await stat(new URL("../dist/og.png", import.meta.url));
+  const socialImage = await stat(new URL("../dist/og.jpg", import.meta.url));
   assert.ok(socialImage.size > 100_000);
+  assert.ok(socialImage.size < 250_000);
 });
 
 test("recruiter assets and discovery files are self-hosted", async () => {
@@ -50,8 +51,8 @@ test("recruiter assets and discovery files are self-hosted", async () => {
 
   assert.ok(resume.size > 100_000);
   assert.ok(portrait.size > 10_000);
-  assert.match(robots, /Sitemap: https:\/\/adityayadav97\.github\.io\/portfolio-v2\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/adityayadav97\.github\.io\/portfolio-v2\/<\/loc>/);
+  assert.match(robots, /Sitemap: https:\/\/adityayadav97\.github\.io\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/adityayadav97\.github\.io\/<\/loc>/);
 });
 
 test("production output contains no known placeholders", () => {
@@ -78,10 +79,13 @@ test("contact actions use browser-reliable destinations and controls", () => {
   assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com \(opens in a new tab\)"/);
   assert.match(html, /data-copy-email/);
   assert.match(html, /data-mobile-resume/);
+  assert.match(html, /class="nav-resume"/);
+  assert.match(html, />View resume</);
+  assert.match(html, /download="Aditya-Yadav-Data-Engineer-Resume\.pdf"/);
   const externalActions = [...html.matchAll(/<a[^>]*data-external-action[^>]*>/g)].map(
     ([tag]) => tag,
   );
-  assert.equal(externalActions.length, 6);
+  assert.equal(externalActions.length, 7);
   externalActions.forEach((tag) => {
     assert.match(tag, /target="_blank"/);
     assert.match(tag, /rel="noopener noreferrer"/);
@@ -114,8 +118,8 @@ test("featured project and cinematic interaction hooks ship in production", () =
     const sectionMarkup = html.slice(projectPositions[index], projectPositions[index] + 700);
     assert.match(sectionMarkup, new RegExp(`data-project-index="0${index + 1}"`));
   });
-  assert.match(html, /Featured retrieval product/);
-  assert.match(html, /Try BenchBuddy AI/);
+  assert.match(html, /Award-winning build/);
+  assert.doesNotMatch(html, /Try BenchBuddy AI|benchbuddy\.streamlit\.app/);
   assert.match(html, /Review source &amp; tests/);
   assert.match(html, /class="assistant-retrieval"/);
   assert.match(html, /class="dashboard-playhead"/);
@@ -148,6 +152,9 @@ test("dimensional visual system and compact systems layout ship in production", 
 test("the broken retail dashboard live link is not published", () => {
   assert.doesNotMatch(html, /ADD_RETAIL_DASHBOARD_URL/);
   assert.match(html, /retail-analytics-dashboard/);
+  assert.match(html, /Analytics product \/ deploy-ready/);
+  assert.match(html, /Review dashboard code &amp; setup/);
+  assert.doesNotMatch(html, /not yet live/i);
 });
 
 test("public claims remain precise and evidence-aligned", () => {
@@ -157,4 +164,7 @@ test("public claims remain precise and evidence-aligned", () => {
   assert.match(html, /global enterprise clients/i);
   assert.match(html, /event-to-Delta/i);
   assert.match(html, /Selected client engagements delivered via EPAM/);
+  assert.match(html, /Winner, EngX India, 2025/);
+  assert.match(html, /SIMULATED/);
+  assert.match(html, /Simulated throughput/);
 });

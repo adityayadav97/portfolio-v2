@@ -3,6 +3,10 @@ import "@fontsource-variable/space-grotesk";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "@fontsource/instrument-serif";
+import primaryFontUrl from "@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url";
+import monoRegularFontUrl from "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2?url";
+import monoSemiboldFontUrl from "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff2?url";
+import serifFontUrl from "@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2?url";
 import "../styles/global.css";
 import {
   Activity,
@@ -15,6 +19,7 @@ import {
   ContactRound,
   Copy,
   Database,
+  Download,
   ExternalLink,
   FileText,
   Mail,
@@ -90,7 +95,7 @@ const projects = [
     ],
     stack: ["Python", "FastAPI", "TF-IDF", "Streamlit", "pytest"],
     repo: "https://github.com/adityayadav97/benchbuddy-ai",
-    live: "https://benchbuddy.streamlit.app/",
+    live: undefined,
     featured: true,
   },
   {
@@ -108,6 +113,7 @@ const projects = [
     ],
     stack: ["PySpark", "Delta Lake", "dbt", "Airflow", "Docker"],
     repo: "https://github.com/adityayadav97/retail-lakehouse-pipeline",
+    live: undefined,
   },
   {
     number: "03",
@@ -124,15 +130,16 @@ const projects = [
     ],
     stack: ["Kafka", "Spark Streaming", "Delta Lake", "dbt", "Airflow"],
     repo: "https://github.com/adityayadav97/realtime-events-pipeline",
+    live: undefined,
   },
   {
     number: "04",
     id: "dashboard",
-    kind: "Analytics product",
+    kind: "Analytics product / deploy-ready",
     title: "Retail Analytics Dashboard",
     statement: "Gold-layer data, shaped for decisions instead of another table dump.",
     description:
-      "A Streamlit product surface for revenue KPIs, customer value tiers, quality gates, and pipeline health. The repository is public; deployment remains intentionally marked as not yet live.",
+      "A deploy-ready Streamlit dashboard for revenue KPIs, customer value tiers, quality gates, and pipeline health, with public source and reproducible setup.",
     metrics: [
       ["5", "analysis surfaces"],
       ["4", "quality signals"],
@@ -140,6 +147,7 @@ const projects = [
     ],
     stack: ["Streamlit", "Plotly", "Pandas", "Python"],
     repo: "https://github.com/adityayadav97/retail-analytics-dashboard",
+    live: undefined,
   },
 ];
 
@@ -201,13 +209,13 @@ const credentials = [
 
 const recognition = [
   ["Generative AI Kata", "Winner, EPAM.AI, Jun 2026"],
-  ["Architectural Kata", "Winner, EngX India, Apr 2026"],
+  ["Architectural Kata", "Winner, EngX India, 2025"],
   ["BAPDM Quarterly Quiz", "Champion across 12 quizzes, 2025"],
   ["EngX Bootcamp", "Top graduate with 90%+ performance, 2024"],
 ];
 
-const canonical = new URL(import.meta.env.BASE_URL, "https://adityayadav97.github.io").toString();
-const socialImage = `${canonical}og.png`;
+const canonical = "https://adityayadav97.github.io/";
+const socialImage = `${canonical}og.jpg`;
 const schema = {
   "@context": "https://schema.org",
   "@type": "Person",
@@ -249,6 +257,34 @@ const schema = {
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/jpeg" href={portraitUrl} />
+    <link
+      rel="preload"
+      href={primaryFontUrl}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href={monoRegularFontUrl}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href={monoSemiboldFontUrl}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href={serifFontUrl}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content="Aditya Yadav - Data Engineer" />
@@ -298,7 +334,7 @@ const schema = {
     </div>
 
     <header class="site-header" data-header>
-      <a class="brand" href="#top" aria-label="Aditya Yadav, back to top">
+      <a class="brand" href="#top" aria-label="AY - Aditya Yadav, back to top">
         <span>AY</span>
         <small>Data systems</small>
       </a>
@@ -309,6 +345,18 @@ const schema = {
         <a href="#systems">Systems</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
+        <a
+          class="nav-resume"
+          href={resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-external-action
+          aria-label="Resume (opens in a new tab)"
+        >
+          <FileText size={15} aria-hidden="true" />
+          <span>Resume</span>
+          <ArrowUpRight size={13} aria-hidden="true" />
+        </a>
       </nav>
 
       <a class="header-cta" href="#contact" aria-label="Let's talk: jump to contact options">
@@ -379,8 +427,8 @@ const schema = {
         <canvas id="data-flow" aria-hidden="true"></canvas>
         <div class="hero-depth-hud" aria-hidden="true">
           <div class="hero-depth-readout">
-            <span>DATA PLANE / RUN 042</span>
-            <b><i></i> LIVE</b>
+            <span>DATA PLANE / REFERENCE</span>
+            <b><i></i> SIMULATED</b>
           </div>
           <div class="hero-depth-axis">
             <span><small>INPUT</small> 3 FEEDS</span>
@@ -425,10 +473,19 @@ const schema = {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-external-action
-                aria-label="Open resume PDF in a new tab"
+                aria-label="View resume PDF in a new tab"
               >
                 <FileText size={18} aria-hidden="true" />
-                <span>Resume - PDF</span>
+                <span>View resume</span>
+              </a>
+              <a
+                class="button button-download"
+                href={resumeUrl}
+                download="Aditya-Yadav-Data-Engineer-Resume.pdf"
+                aria-label="Download PDF - Aditya Yadav resume"
+              >
+                <Download size={18} aria-hidden="true" />
+                <span>Download PDF</span>
               </a>
             </div>
           </div>
@@ -441,17 +498,17 @@ const schema = {
           </div>
 
           <div class="hero-telemetry" role="group" aria-label="Selected engineering metrics">
-            <p><span></span>Live reliability</p>
+            <p><span></span>Reference pipeline</p>
             <div>
-              <span>Throughput</span>
+              <span>Simulated throughput</span>
               <strong data-flow-throughput>10.4k/min</strong>
             </div>
             <div>
-              <span>Quality gate</span>
+              <span>Quality checks</span>
               <strong>15/15 pass</strong>
             </div>
             <div>
-              <span>Delivery</span>
+              <span>Delivery pattern</span>
               <strong>Exactly once</strong>
             </div>
           </div>
@@ -513,6 +570,7 @@ const schema = {
               width="460"
               height="460"
               loading="lazy"
+              decoding="async"
             />
             <figcaption>
               <span>Aditya Yadav</span>
@@ -620,7 +678,7 @@ const schema = {
                     <strong class="featured-project-badge">
                       <Sparkles size={15} aria-hidden="true" /> 2026 Gen-AI Kata Winner
                     </strong>
-                    <span class="featured-live-state"><i aria-hidden="true"></i> Live product</span>
+                    <span class="featured-live-state"><i aria-hidden="true"></i> Award-winning build</span>
                   </div>
                 )}
               </div>
@@ -662,7 +720,7 @@ const schema = {
                       project.id === "benchbuddy"
                         ? "Review source & tests"
                         : project.id === "dashboard"
-                          ? "View dashboard source"
+                          ? "Review dashboard code & setup"
                           : "View pipeline source"
                     }
                     <ArrowUpRight size={16} aria-hidden="true" />
@@ -686,7 +744,7 @@ const schema = {
                 data-tilt-surface
               >
                 <div class="visual-chrome" aria-hidden="true">
-                  <span>{project.featured ? "LIVE PRODUCT" : "SCROLL PLAYBACK"}</span>
+                  <span>{project.featured ? "PRODUCT WALKTHROUGH" : "SCROLL PLAYBACK"}</span>
                   <i></i>
                   <b>{project.number}</b>
                 </div>
@@ -728,7 +786,7 @@ const schema = {
                 {project.id === "benchbuddy" && (
                   <div class="assistant-ui" aria-hidden="true">
                     <div class="assistant-topline">
-                      <span>BENCHBUDDY / GROUNDED MODE</span><b>LIVE</b>
+                      <span>BENCHBUDDY / GROUNDED MODE</span><b>DEMO</b>
                     </div>
                     <div class="assistant-retrieval">
                       <span>KNOWLEDGE</span><i></i><span>RETRIEVE</span><i></i><span>ANSWER</span>
@@ -846,7 +904,7 @@ const schema = {
                 <i></i>
                 <span>TRUST LAYER</span>
                 <strong>LIVE</strong>
-                <small>99.99% SLO</small>
+                <small>99.99% SLO TARGET</small>
               </div>
               <div class="bloom-legend" aria-hidden="true">
                 <span>Compute</span><span>Move</span><span>Store</span><span>Trust</span>
@@ -884,13 +942,19 @@ const schema = {
           <div class="credentials-heading" data-reveal>
             <p class="chapter-label">05 / Verified signal</p>
             <h2>Credentials backed by shipped work.</h2>
-            <p>Six active credentials plus the competitive wins that mattered most.</p>
+            <p>Six verified credentials plus the competitive wins that mattered most.</p>
           </div>
 
-          <div class="credential-list" role="list" aria-label="Professional credentials">
+          <div class="credential-list">
             {
               credentials.map(([title, issuer, url], index) => (
-                <a href={url} target="_blank" rel="noreferrer" data-reveal role="listitem">
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-reveal
+                  aria-label={`Verify ${title} credential (opens in a new tab)`}
+                >
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{title}</strong>
                   <small>{issuer}</small>
@@ -900,10 +964,10 @@ const schema = {
             }
           </div>
 
-          <div class="recognition-list" role="list" aria-label="Awards and recognition">
+          <div class="recognition-list">
             {
               recognition.map(([title, detail]) => (
-                <article data-reveal role="listitem">
+                <article data-reveal>
                   <Award size={21} aria-hidden="true" />
                   <div>
                     <h3>{title}</h3>

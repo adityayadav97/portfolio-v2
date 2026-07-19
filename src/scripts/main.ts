@@ -1,5 +1,6 @@
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+const lightweightMotionQuery = window.matchMedia("(max-width: 920px), (pointer: coarse)");
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const easeOutCubic = (value: number) => 1 - (1 - value) ** 3;
 const smoothstep = (value: number) => {
@@ -233,6 +234,7 @@ function setupMotionSections() {
 
   let userPaused = false;
   let reducedMotion = reducedMotionQuery.matches;
+  let lightweightMotion = lightweightMotionQuery.matches;
 
   const applyReducedMotionState = () => {
     hero?.style.setProperty("--hero-progress", "0");
@@ -254,9 +256,9 @@ function setupMotionSections() {
     });
   };
 
-  if (reducedMotion) applyReducedMotionState();
+  if (reducedMotion || lightweightMotion) applyReducedMotionState();
 
-  if ("IntersectionObserver" in window) {
+  if ("IntersectionObserver" in window && !lightweightMotion) {
     const visibilityObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -275,7 +277,7 @@ function setupMotionSections() {
 
   let queued = false;
   const update = () => {
-    if (userPaused || reducedMotion) {
+    if (userPaused || reducedMotion || lightweightMotion) {
       queued = false;
       return;
     }
@@ -330,7 +332,7 @@ function setupMotionSections() {
   };
 
   const requestUpdate = () => {
-    if (queued) return;
+    if (queued || lightweightMotion) return;
     queued = true;
     window.requestAnimationFrame(update);
   };
@@ -346,6 +348,11 @@ function setupMotionSections() {
     if (reducedMotion) applyReducedMotionState();
     requestUpdate();
   });
+  lightweightMotionQuery.addEventListener("change", (event) => {
+    lightweightMotion = event.matches;
+    if (lightweightMotion) applyReducedMotionState();
+    requestUpdate();
+  });
   update();
 }
 
@@ -357,7 +364,19 @@ function setupPortraitReveal() {
 
   let userPaused = false;
   let reducedMotion = reducedMotionQuery.matches;
+  let nearby = true;
   let queued = false;
+
+  if ("IntersectionObserver" in window) {
+    const proximityObserver = new IntersectionObserver(
+      ([entry]) => {
+        nearby = Boolean(entry?.isIntersecting);
+        if (nearby) requestUpdate();
+      },
+      { rootMargin: "100% 0px 100% 0px", threshold: 0 },
+    );
+    proximityObserver.observe(portrait);
+  }
 
   const apply = (focusInput: number) => {
     const colorFocus = smoothstep(clamp(focusInput));
@@ -378,6 +397,10 @@ function setupPortraitReveal() {
   };
 
   const update = () => {
+    if (!nearby) {
+      queued = false;
+      return;
+    }
     if (reducedMotion) {
       portrait.dataset.portraitPhase = "center";
       apply(1);
@@ -440,6 +463,7 @@ type CursorEcho = {
 
 function setupPrecisionCursor() {
   let unmount: (() => void) | null = null;
+  let userPaused = false;
 
   const mount = () => {
     const controller = new AbortController();
@@ -672,7 +696,7 @@ function setupPrecisionCursor() {
   };
 
   const sync = () => {
-    const enabled = finePointerQuery.matches && !reducedMotionQuery.matches;
+    const enabled = finePointerQuery.matches && !reducedMotionQuery.matches && !userPaused;
     if (enabled && !unmount) unmount = mount();
     if (!enabled && unmount) {
       unmount();
@@ -682,6 +706,10 @@ function setupPrecisionCursor() {
 
   finePointerQuery.addEventListener("change", sync);
   reducedMotionQuery.addEventListener("change", sync);
+  window.addEventListener("motionstatechange", (event) => {
+    userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+    sync();
+  });
   window.addEventListener("pagehide", () => {
     unmount?.();
     unmount = null;
@@ -701,6 +729,15 @@ function setupScrollMonitor() {
   const contact = document.querySelector<HTMLElement>("#contact");
   const railSegments = Array.from(document.querySelectorAll<HTMLElement>(".chromatic-rail span"));
   if (!monitor || !indexOutput || !labelOutput || !meter || !sections.length) return;
+
+  if (window.innerWidth <= 1100 && contact && "IntersectionObserver" in window) {
+    const contactObserver = new IntersectionObserver(
+      ([entry]) => document.body.classList.toggle("at-contact", Boolean(entry?.isIntersecting)),
+      { rootMargin: "-38% 0px -20% 0px", threshold: 0 },
+    );
+    contactObserver.observe(contact);
+    return;
+  }
 
   const accents = [visualPalette.blue, visualPalette.live];
   let queued = false;
@@ -767,6 +804,21 @@ function setupExperienceSpotlight() {
   if (!rows.length) return;
   if (reducedMotionQuery.matches) {
     rows[0].classList.add("is-experience-active");
+    return;
+  }
+
+  if (lightweightMotionQuery.matches && "IntersectionObserver" in window) {
+    rows[0].classList.add("is-experience-active");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          rows.forEach((row) => row.classList.toggle("is-experience-active", row === entry.target));
+        });
+      },
+      { rootMargin: "-38% 0px -38% 0px", threshold: 0 },
+    );
+    rows.forEach((row) => observer.observe(row));
     return;
   }
 
@@ -955,6 +1007,10 @@ class DataFlowScene {
   private throughput: HTMLElement | null;
   private lastMetricUpdate = 0;
   private pausedElapsed = 0;
+  private lastRender = 0;
+  private controller = new AbortController();
+  private resizeObserver: ResizeObserver | null = null;
+  private visibilityObserver: IntersectionObserver | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext("2d");
@@ -971,40 +1027,41 @@ class DataFlowScene {
   }
 
   private bind() {
-    const resizeObserver = new ResizeObserver(() => this.resize());
-    resizeObserver.observe(this.canvas);
+    const { signal } = this.controller;
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(this.canvas);
 
-    const visibilityObserver = new IntersectionObserver(
+    this.visibilityObserver = new IntersectionObserver(
       ([entry]) => {
         this.visible = Boolean(entry?.isIntersecting);
         this.updateLoop();
       },
       { threshold: 0.02 },
     );
-    visibilityObserver.observe(this.canvas);
+    this.visibilityObserver.observe(this.canvas);
 
     document.addEventListener("visibilitychange", () => {
       this.pageVisible = !document.hidden;
       this.updateLoop();
-    });
+    }, { signal });
 
     reducedMotionQuery.addEventListener("change", (event) => {
       this.reducedMotion = event.matches;
       this.draw(performance.now());
       this.updateLoop();
-    });
+    }, { signal });
 
     if (finePointerQuery.matches) {
       this.canvas.parentElement?.addEventListener("pointermove", (event) => {
         const bounds = this.canvas.getBoundingClientRect();
         this.pointer.targetX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 14;
         this.pointer.targetY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 10;
-      });
+      }, { signal });
 
       this.canvas.parentElement?.addEventListener("pointerleave", () => {
         this.pointer.targetX = 0;
         this.pointer.targetY = 0;
-      });
+      }, { signal });
     }
 
     this.toggle?.addEventListener("click", () => {
@@ -1028,7 +1085,15 @@ class DataFlowScene {
       );
       this.draw(performance.now());
       this.updateLoop();
-    });
+    }, { signal });
+  }
+
+  public destroy() {
+    if (this.frame) window.cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.resizeObserver?.disconnect();
+    this.visibilityObserver?.disconnect();
+    this.controller.abort();
   }
 
   private resize() {
@@ -1064,6 +1129,12 @@ class DataFlowScene {
 
   private tick(time: number) {
     this.frame = 0;
+    const frameInterval = window.innerWidth <= 700 ? 1000 / 30 : 1000 / 45;
+    if (this.lastRender && time - this.lastRender < frameInterval) {
+      this.frame = window.requestAnimationFrame((nextTime) => this.tick(nextTime));
+      return;
+    }
+    this.lastRender = time;
     this.pointer.x += (this.pointer.targetX - this.pointer.x) * 0.06;
     this.pointer.y += (this.pointer.targetY - this.pointer.y) * 0.06;
     this.draw(time);
@@ -1368,6 +1439,7 @@ class TrustBloomScene {
   private progress = 0.24;
   private startTime = performance.now();
   private pausedElapsed = 0;
+  private lastRender = 0;
   private pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
   constructor(canvas: HTMLCanvasElement, section: HTMLElement, stage: HTMLElement) {
@@ -1402,11 +1474,11 @@ class TrustBloomScene {
 
     let scrollQueued = false;
     const requestProgress = () => {
-      if (!this.visible || scrollQueued) return;
+      if (!this.visible || scrollQueued || this.userPaused || this.reducedMotion) return;
       scrollQueued = true;
       window.requestAnimationFrame(() => {
         this.updateProgress();
-        this.draw(performance.now());
+        if (!this.frame) this.draw(performance.now());
         scrollQueued = false;
       });
     };
@@ -1501,6 +1573,12 @@ class TrustBloomScene {
 
   private tick(time: number) {
     this.frame = 0;
+    const frameInterval = lightweightMotionQuery.matches ? 1000 / 30 : 1000 / 45;
+    if (this.lastRender && time - this.lastRender < frameInterval) {
+      this.frame = window.requestAnimationFrame((nextTime) => this.tick(nextTime));
+      return;
+    }
+    this.lastRender = time;
     this.pointer.x += (this.pointer.targetX - this.pointer.x) * 0.07;
     this.pointer.y += (this.pointer.targetY - this.pointer.y) * 0.07;
     this.draw(time);
@@ -1876,42 +1954,17 @@ class TrustBloomScene {
 async function setupDataFlow() {
   const canvas = document.querySelector<HTMLCanvasElement>("#data-flow");
   if (!canvas) return;
-  let fallbackCanvas = canvas;
   const connection = (
     navigator as Navigator & {
       connection?: { effectiveType?: string; saveData?: boolean };
+      deviceMemory?: number;
     }
   ).connection;
   const constrainedConnection =
     connection?.saveData || connection?.effectiveType?.includes("2g");
-
-  if (!reducedMotionQuery.matches && window.innerWidth > 1180 && !constrainedConnection) {
-    try {
-      const idleWindow = window as Window & {
-        requestIdleCallback?: (
-          callback: () => void,
-          options?: { timeout: number },
-        ) => number;
-      };
-      await new Promise<void>((resolve) => {
-        if (idleWindow.requestIdleCallback) {
-          idleWindow.requestIdleCallback(resolve, { timeout: 700 });
-          return;
-        }
-        window.setTimeout(resolve, 180);
-      });
-      const { ThreeDataFlowScene } = await import("./three-flow");
-      new ThreeDataFlowScene(canvas);
-      return;
-    } catch (error) {
-      console.warn("3D data-flow scene unavailable; using the lightweight canvas.", error);
-      fallbackCanvas = canvas.cloneNode(false) as HTMLCanvasElement;
-      canvas.replaceWith(fallbackCanvas);
-    }
-  }
-
+  let fallbackScene: DataFlowScene;
   try {
-    new DataFlowScene(fallbackCanvas);
+    fallbackScene = new DataFlowScene(canvas);
   } catch {
     const toggle = document.querySelector<HTMLButtonElement>("#flow-toggle");
     const label = toggle?.querySelector<HTMLElement>("[data-flow-label]");
@@ -1927,7 +1980,88 @@ async function setupDataFlow() {
       document.body.classList.toggle("motion-paused", paused);
       window.dispatchEvent(new CustomEvent("motionstatechange", { detail: { paused } }));
     });
+    return;
   }
+
+  const capableNavigator = navigator as Navigator & { deviceMemory?: number };
+  const lowCapability =
+    (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency < 4) ||
+    Boolean(capableNavigator.deviceMemory && capableNavigator.deviceMemory < 4);
+  if (
+    reducedMotionQuery.matches ||
+    window.innerWidth <= 1180 ||
+    constrainedConnection ||
+    lowCapability
+  ) {
+    return;
+  }
+
+  const hero = canvas.closest<HTMLElement>(".hero");
+  let upgraded = false;
+  let armTimer = 0;
+  let idleTimer = 0;
+
+  const isHeroVisible = () => {
+    const bounds = hero?.getBoundingClientRect();
+    return Boolean(bounds && bounds.bottom > 0 && bounds.top < window.innerHeight);
+  };
+
+  const cleanupUpgradeTriggers = () => {
+    window.removeEventListener("pointermove", queueUpgrade);
+    window.removeEventListener("keydown", queueUpgrade);
+    window.clearTimeout(armTimer);
+    window.clearTimeout(idleTimer);
+  };
+
+  const upgrade = async () => {
+    if (upgraded || !isHeroVisible()) return;
+    upgraded = true;
+    cleanupUpgradeTriggers();
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    };
+    await new Promise<void>((resolve) => {
+      if (idleWindow.requestIdleCallback) {
+        idleWindow.requestIdleCallback(resolve, { timeout: 1200 });
+        return;
+      }
+      window.setTimeout(resolve, 240);
+    });
+
+    const upgradeCanvas = canvas.cloneNode(false) as HTMLCanvasElement;
+    upgradeCanvas.id = "data-flow-3d";
+    upgradeCanvas.className = "data-flow-3d";
+    upgradeCanvas.setAttribute("aria-hidden", "true");
+    canvas.after(upgradeCanvas);
+
+    try {
+      const { ThreeDataFlowScene } = await import("./three-flow");
+      new ThreeDataFlowScene(upgradeCanvas);
+      window.requestAnimationFrame(() => {
+        upgradeCanvas.classList.add("is-ready");
+        canvas.classList.add("is-fallback-hidden");
+      });
+      window.setTimeout(() => {
+        fallbackScene.destroy();
+        canvas.remove();
+      }, 760);
+    } catch (error) {
+      upgraded = false;
+      upgradeCanvas.remove();
+      console.warn("3D data-flow scene unavailable; using the lightweight canvas.", error);
+    }
+  };
+
+  function queueUpgrade() {
+    void upgrade();
+  }
+
+  armTimer = window.setTimeout(() => {
+    window.addEventListener("pointermove", queueUpgrade, { passive: true });
+    window.addEventListener("keydown", queueUpgrade);
+  }, 2500);
+  idleTimer = window.setTimeout(queueUpgrade, 12000);
 }
 
 function setupTrustBloom() {

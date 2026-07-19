@@ -7098,3 +7098,135 @@ body.at-project .scroll-monitor {
     transform: none !important;
   }
 }
+
+/* Final audit pass: faster first paint, stronger recruiter paths, and mobile restraint. */
+.brand {
+  min-width: 44px;
+}
+
+.desktop-nav .nav-resume {
+  gap: 6px;
+  padding-inline: 10px;
+  color: var(--phosphor);
+}
+
+.desktop-nav .nav-resume::after {
+  background: var(--phosphor);
+}
+
+.button-download {
+  border-color: rgba(184, 216, 121, 0.6);
+  background: rgba(184, 216, 121, 0.08);
+  color: var(--phosphor);
+}
+
+.button-download:hover,
+.button-download:focus-visible {
+  border-color: var(--phosphor);
+  background: var(--phosphor);
+  color: var(--ink);
+}
+
+.button-download:hover svg {
+  transform: translateY(3px);
+}
+
+.proof-intro,
+.proof-stat span {
+  color: #525953;
+}
+
+.paper-section :focus-visible,
+.signal-section :focus-visible,
+.proof-band :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+.portrait img {
+  will-change: auto;
+}
+
+.portrait.is-portrait-active img {
+  will-change: filter, transform;
+}
+
+body.motion-paused [data-reveal] {
+  transition: none !important;
+}
+
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) {
+  opacity: 1;
+  transform: none;
+}
+
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) h1 span:first-child {
+  opacity: 1;
+  transform: translate3d(calc(var(--hero-progress) * -18px), 0, 0);
+}
+
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) h1 span:last-child {
+  opacity: 1;
+  transform: translate3d(calc(var(--hero-progress) * 20px), 0, 0);
+}
+
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) .hero-thesis,
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) .hero-summary,
+.motion-ready .hero-copy[data-reveal="hero"]:not(.is-visible) .hero-actions {
+  opacity: 1;
+  transform: none;
+}
+
+#data-flow,
+.data-flow-3d {
+  transition: opacity 620ms ease;
+}
+
+.data-flow-3d {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  filter: saturate(1.08) contrast(1.04);
+  pointer-events: none;
+}
+
+.data-flow-3d.is-ready {
+  opacity: 0.94;
+}
+
+#data-flow.is-fallback-hidden {
+  opacity: 0;
+}
+
+@media (min-width: 1181px) {
+  .data-flow-3d {
+    clip-path: inset(0 0 0 58%);
+  }
+}
+
+@media (max-width: 920px) {
+  body.menu-open .site-header {
+    min-height: 72px;
+  }
+}
+
+@media (max-width: 680px) {
+  body.menu-open .site-header {
+    min-height: 64px;
+  }
+
+  .visual-benchbuddy {
+    min-height: clamp(550px, 148vw, 590px);
+  }
+
+  .visual-lakehouse {
+    min-height: clamp(430px, 122vw, 470px);
+  }
+
+  .visual-streaming,
+  .visual-dashboard {
+    min-height: clamp(410px, 116vw, 450px);
+  }
+}
