@@ -29,6 +29,13 @@ function setupMenu() {
   const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
   const navigation = document.querySelector<HTMLElement>("[data-mobile-nav]");
   if (!button || !navigation) return;
+  const background = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
+
+  const setBackgroundInert = (value: boolean) => {
+    background.forEach((element) => {
+      element.inert = value;
+    });
+  };
 
   const close = (restoreFocus = false) => {
     button.setAttribute("aria-expanded", "false");
@@ -36,6 +43,7 @@ function setupMenu() {
     button.setAttribute("title", "Open navigation");
     navigation.hidden = true;
     document.body.classList.remove("menu-open");
+    setBackgroundInert(false);
     if (restoreFocus) button.focus();
   };
 
@@ -45,6 +53,7 @@ function setupMenu() {
     button.setAttribute("title", "Close navigation");
     navigation.hidden = false;
     document.body.classList.add("menu-open");
+    setBackgroundInert(true);
     navigation.querySelector<HTMLAnchorElement>("a")?.focus();
   };
 
@@ -54,12 +63,40 @@ function setupMenu() {
   });
 
   navigation.addEventListener("click", (event) => {
-    if ((event.target as HTMLElement).closest("a")) close();
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>("a");
+    if (!link) return;
+    const href = link.getAttribute("href");
+    close();
+    if (!href?.startsWith("#")) return;
+    window.setTimeout(() => {
+      const destination = document.querySelector<HTMLElement>(href);
+      const focusTarget =
+        destination?.querySelector<HTMLElement>("[data-menu-focus], h1, h2, h3") ?? destination;
+      if (!focusTarget) return;
+      focusTarget.setAttribute("tabindex", "-1");
+      focusTarget.focus({ preventScroll: true });
+      focusTarget.addEventListener("blur", () => focusTarget.removeAttribute("tabindex"), {
+        once: true,
+      });
+    }, 350);
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+    const isOpen = button.getAttribute("aria-expanded") === "true";
+    if (event.key === "Escape" && isOpen) {
       close(true);
+      return;
+    }
+    if (event.key !== "Tab" || !isOpen) return;
+    const focusable = [button, ...navigation.querySelectorAll<HTMLAnchorElement>("a")];
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
     }
   });
 
@@ -91,17 +128,21 @@ function setupRevealMotion() {
 }
 
 function setupActiveNavigation() {
-  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".desktop-nav a"));
+  const links = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>(
+      '.desktop-nav a[href^="#"], [data-mobile-nav] a[href^="#"]',
+    ),
+  );
   const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-section]"));
   if (!links.length || !sections.length || !("IntersectionObserver" in window)) return;
 
-  const linkBySection = new Map(
-    links.map((link) => [link.getAttribute("href")?.slice(1), link] as const),
-  );
-
   const activate = (sectionName: string) => {
-    links.forEach((link) => link.classList.remove("is-active"));
-    linkBySection.get(sectionName)?.classList.add("is-active");
+    links.forEach((link) => {
+      const active = link.getAttribute("href") === `#${sectionName}`;
+      link.classList.toggle("is-active", active);
+      if (active) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
   };
 
   const observer = new IntersectionObserver(
@@ -171,18 +212,32 @@ function setupMotionSections() {
   );
 
   let userPaused = false;
+  let reducedMotion = reducedMotionQuery.matches;
 
-  if (reducedMotionQuery.matches) {
+  const applyReducedMotionState = () => {
     hero?.style.setProperty("--hero-progress", "0");
-    sections.forEach((section) => section.classList.add("is-motion-active"));
-    return;
-  }
+    sections.forEach((section) => {
+      section.classList.add("is-motion-active");
+      section.style.setProperty("--section-progress", "1");
+      section.style.setProperty("--section-enter", "1");
+      section.style.setProperty("--section-focus", "1");
+      section.style.setProperty("--section-exit", "0");
+      section.style.setProperty("--section-shift", "0px");
+      section.style.setProperty("--section-rise", "18%");
+      section.style.setProperty("--section-ribbon-x", "-6vw");
+    });
+  };
+
+  if (reducedMotion) applyReducedMotionState();
 
   if ("IntersectionObserver" in window) {
     const visibilityObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          entry.target.classList.toggle("is-motion-active", entry.isIntersecting);
+          entry.target.classList.toggle(
+            "is-motion-active",
+            reducedMotion || entry.isIntersecting,
+          );
         });
       },
       { rootMargin: "12% 0px 12% 0px", threshold: 0.04 },
@@ -194,12 +249,7 @@ function setupMotionSections() {
 
   let queued = false;
   const update = () => {
-    if (userPaused) {
-      hero?.style.setProperty("--hero-progress", "0");
-      sections.forEach((section) => {
-        section.style.setProperty("--copy-shift", "0px");
-        section.style.setProperty("--visual-shift", "0px");
-      });
+    if (userPaused || reducedMotion) {
       queued = false;
       return;
     }
@@ -213,11 +263,24 @@ function setupMotionSections() {
       const bounds = section.getBoundingClientRect();
       if (bounds.bottom < -viewport || bounds.top > viewport * 2) return;
       const progress = clamp((viewport - bounds.top) / (viewport + bounds.height));
+      const enter = easeOutCubic(clamp(progress / 0.24));
+      const focus = 1 - clamp(Math.abs(progress - 0.5) / 0.5);
+      const exit = easeOutCubic(clamp((progress - 0.76) / 0.24));
       const copyShift = (0.5 - progress) * 54;
       const visualShift = (0.5 - progress) * -34;
+      const sectionShift = (1 - enter) * 28 - exit * 18;
+      const sectionRise = 72 - enter * 54;
+      const ribbonX = progress * -10;
       section.style.setProperty("--section-progress", progress.toFixed(3));
+      section.style.setProperty("--section-enter", enter.toFixed(3));
+      section.style.setProperty("--section-focus", focus.toFixed(3));
+      section.style.setProperty("--section-exit", exit.toFixed(3));
+      section.style.setProperty("--section-shift", `${sectionShift.toFixed(2)}px`);
+      section.style.setProperty("--section-rise", `${sectionRise.toFixed(2)}%`);
+      section.style.setProperty("--section-ribbon-x", `${ribbonX.toFixed(2)}vw`);
       section.style.setProperty("--copy-shift", `${copyShift.toFixed(2)}px`);
       section.style.setProperty("--visual-shift", `${visualShift.toFixed(2)}px`);
+      section.classList.toggle("is-motion-focus", focus > 0.7);
     });
     queued = false;
   };
@@ -234,7 +297,158 @@ function setupMotionSections() {
     userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
     requestUpdate();
   });
+  reducedMotionQuery.addEventListener("change", (event) => {
+    reducedMotion = event.matches;
+    if (reducedMotion) applyReducedMotionState();
+    requestUpdate();
+  });
   update();
+}
+
+function setupScrollMonitor() {
+  const monitor = document.querySelector<HTMLElement>(".scroll-monitor");
+  const indexOutput = monitor?.querySelector<HTMLElement>("[data-scroll-index]");
+  const labelOutput = monitor?.querySelector<HTMLElement>("[data-scroll-label]");
+  const meter = monitor?.querySelector<HTMLElement>("[data-scroll-meter]");
+  const sections = Array.from(
+    document.querySelectorAll<HTMLElement>("main [data-scroll-label]"),
+  );
+  const contact = document.querySelector<HTMLElement>("#contact");
+  const railSegments = Array.from(document.querySelectorAll<HTMLElement>(".chromatic-rail span"));
+  if (!monitor || !indexOutput || !labelOutput || !meter || !sections.length) return;
+
+  const accents = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0", "#ffd447"];
+  let queued = false;
+
+  const update = () => {
+    const viewport = window.innerHeight;
+    if (window.innerWidth <= 1100) {
+      const contactBounds = contact?.getBoundingClientRect();
+      document.body.classList.toggle(
+        "at-contact",
+        Boolean(
+          contactBounds &&
+            contactBounds.top < viewport * 0.62 &&
+            contactBounds.bottom > viewport * 0.2,
+        ),
+      );
+      queued = false;
+      return;
+    }
+    const anchor = viewport * 0.46;
+    let activeIndex = 0;
+    let activeBounds = sections[0].getBoundingClientRect();
+    let nearest = Number.POSITIVE_INFINITY;
+
+    sections.forEach((section, index) => {
+      const bounds = section.getBoundingClientRect();
+      if (bounds.bottom < 0 || bounds.top > viewport) return;
+      const distance = Math.abs(bounds.top + Math.min(bounds.height, viewport) * 0.5 - anchor);
+      if (distance >= nearest) return;
+      nearest = distance;
+      activeIndex = index;
+      activeBounds = bounds;
+    });
+
+    const section = sections[activeIndex];
+    const progress = clamp((anchor - activeBounds.top) / Math.max(activeBounds.height, 1));
+    const accent = accents[activeIndex % accents.length];
+    monitor.classList.toggle("is-dormant", activeIndex <= 1);
+    indexOutput.textContent = String(activeIndex).padStart(2, "0");
+    labelOutput.textContent = section.dataset.scrollLabel ?? "Signal";
+    meter.style.transform = `scaleX(${progress.toFixed(3)})`;
+    document.documentElement.style.setProperty("--active-accent", accent);
+    document.body.classList.toggle("at-contact", section.dataset.scrollLabel === "Open channel");
+    railSegments.forEach((segment, index) => {
+      segment.style.opacity = index === activeIndex % railSegments.length ? "1" : "0.34";
+    });
+    queued = false;
+  };
+
+  const requestUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  update();
+}
+
+function setupExperienceSpotlight() {
+  const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-experience-row]"));
+  if (!rows.length) return;
+  if (reducedMotionQuery.matches) {
+    rows[0].classList.add("is-experience-active");
+    return;
+  }
+
+  let userPaused = false;
+  let queued = false;
+  const update = () => {
+    if (userPaused) {
+      queued = false;
+      return;
+    }
+    const anchor = window.innerHeight * 0.54;
+    let active = rows[0];
+    let nearest = Number.POSITIVE_INFINITY;
+    rows.forEach((row) => {
+      const bounds = row.getBoundingClientRect();
+      const distance = Math.abs(bounds.top + bounds.height * 0.5 - anchor);
+      if (distance >= nearest) return;
+      nearest = distance;
+      active = row;
+    });
+    rows.forEach((row) => row.classList.toggle("is-experience-active", row === active));
+    queued = false;
+  };
+
+  const requestUpdate = () => {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  window.addEventListener("motionstatechange", (event) => {
+    userPaused = Boolean((event as CustomEvent<{ paused: boolean }>).detail?.paused);
+    if (!userPaused) requestUpdate();
+  });
+  update();
+}
+
+function setupContactActions() {
+  const button = document.querySelector<HTMLButtonElement>("[data-copy-email]");
+  const label = button?.querySelector<HTMLElement>("[data-copy-label]");
+  const status = document.querySelector<HTMLElement>("[data-copy-status]");
+  if (!button || !label || !status) return;
+
+  const copyWithFallback = async (value: string) => {
+    if (!navigator.clipboard?.writeText) return false;
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  button.addEventListener("click", async () => {
+    const email = button.dataset.email;
+    if (!email) return;
+    const copied = await copyWithFallback(email);
+    button.classList.toggle("is-copied", copied);
+    label.textContent = copied ? "Copied" : "Copy failed";
+    status.textContent = copied ? "Email address copied." : "Email address could not be copied.";
+    window.setTimeout(() => {
+      button.classList.remove("is-copied");
+      label.textContent = "Copy email";
+      status.textContent = "";
+    }, 2400);
+  });
 }
 
 function setupTiltSurfaces() {
@@ -428,12 +642,12 @@ class DataFlowScene {
   }
 
   private getRoutes(): Point[][] {
-    const compact = this.width < 700;
+    const compact = window.innerWidth <= 1100;
     const shiftX = this.pointer.x;
     const shiftY = this.pointer.y;
 
     if (compact) {
-      const y = this.height * 0.78 + shiftY;
+      const y = this.height * (window.innerWidth < 700 ? 0.94 : 0.95) + shiftY;
       const points = [0.08, 0.27, 0.47, 0.68, 0.88].map((ratio, index) => ({
         x: this.width * ratio + shiftX * (index / 5),
         y,
@@ -487,7 +701,7 @@ class DataFlowScene {
     context.save();
     context.strokeStyle = "rgba(243, 241, 232, 0.055)";
     context.lineWidth = 1;
-    const step = this.width < 700 ? 32 : 48;
+    const step = window.innerWidth <= 1100 ? 32 : 48;
 
     for (let x = 0.5; x < this.width; x += step) {
       context.beginPath();
@@ -508,7 +722,7 @@ class DataFlowScene {
     const context = this.context;
     const elapsed = this.reducedMotion || this.userPaused ? 0 : (time - this.startTime) / 1000;
     const colors = ["#ff5a36", "#c8ff3d", "#315cff", "#35efc0"];
-    const count = this.width < 700 ? 9 : 24;
+    const count = window.innerWidth <= 1100 ? 9 : 24;
 
     context.save();
     for (let index = 0; index < count; index += 1) {
@@ -582,7 +796,7 @@ class DataFlowScene {
 
   private drawNode(point: Point, label: string, active = false) {
     const context = this.context;
-    const compact = this.width < 700;
+    const compact = window.innerWidth <= 1100;
     const nodeWidth = compact ? 42 : 74;
     const nodeHeight = compact ? 24 : 34;
     context.save();
@@ -607,7 +821,7 @@ class DataFlowScene {
     this.drawSignalField(time);
 
     const routes = this.getRoutes();
-    const compact = this.width < 700;
+    const compact = window.innerWidth <= 1100;
     const labels = compact
       ? ["RAW", "INGEST", "MODEL", "CHECK", "SERVE"]
       : ["SOURCE", "INGEST", "TRANSFORM", "QUALITY", "WAREHOUSE"];
@@ -646,16 +860,6 @@ class DataFlowScene {
       context.fillRect(point.x - size / 2, point.y - size / 2, size, size);
     }
 
-    if (!compact) {
-      context.save();
-      context.fillStyle = "rgba(243, 241, 232, 0.46)";
-      context.font = "9px IBM Plex Mono, monospace";
-      context.textAlign = "right";
-      context.fillText("LIVE DATA PLANE / HEALTHY", this.width - 56, this.height - 76);
-      context.fillStyle = "#c8ff3d";
-      context.fillRect(this.width - 48, this.height - 82, 8, 8);
-      context.restore();
-    }
   }
 }
 
@@ -970,6 +1174,9 @@ setupRevealMotion();
 setupActiveNavigation();
 setupCounters();
 setupMotionSections();
+setupScrollMonitor();
+setupExperienceSpotlight();
+setupContactActions();
 setupTiltSurfaces();
 setupCapabilitySpotlight();
 setupDataFlow();

@@ -47,6 +47,27 @@ test("motion and mobile navigation have accessible fallbacks", () => {
   assert.match(css, /body\.motion-paused/);
 });
 
+test("contact actions use browser-reliable destinations and controls", () => {
+  assert.match(html, /href="#contact" aria-label="Open channel: jump to contact options"/);
+  assert.match(html, /https:\/\/mail\.google\.com\/mail\/\?view=cm&amp;fs=1&amp;to=adityayadav8g@gmail\.com/);
+  assert.match(html, /aria-label="Compose in Gmail to adityayadav8g@gmail\.com"/);
+  assert.match(html, /data-copy-email/);
+  assert.match(html, /data-mobile-resume/);
+  assert.doesNotMatch(html, /data-mobile-resume[^>]*target="_blank"/);
+  assert.match(html, /aria-live="polite"/);
+  assert.match(html, /data-section="contact"/);
+  assert.match(html, /aria-labelledby="impact-label"/);
+  assert.doesNotMatch(html, /href="mailto:adityayadav8g@gmail\.com"/);
+});
+
+test("premium scroll hooks and experience hierarchy ship in production", () => {
+  assert.match(html, /class="scroll-monitor"/);
+  assert.match(html, /data-experience-row/);
+  assert.match(html, /data-motion-kind="experience"/);
+  assert.match(css, /\.experience-row\.is-experience-active/);
+  assert.match(css, /--section-progress/);
+});
+
 test("the broken retail dashboard live link is not published", () => {
   assert.doesNotMatch(html, /ADD_RETAIL_DASHBOARD_URL/);
   assert.match(html, /retail-analytics-dashboard/);

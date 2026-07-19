@@ -11,6 +11,7 @@ import {
   Check,
   CodeXml,
   ContactRound,
+  Copy,
   Database,
   FileText,
   Mail,
@@ -24,6 +25,10 @@ import {
 
 const resumeUrl =
   "https://drive.google.com/file/d/1mhOFp3oGO1Zi1V76GKXMZral6wfICptW/view?usp=sharing";
+const emailAddress = "adityayadav8g@gmail.com";
+const gmailComposeUrl =
+  `https://mail.google.com/mail/?view=cm&fs=1&to=${emailAddress}&su=${encodeURIComponent("Data engineering opportunity")}`;
+const [emailUser, emailDomain] = emailAddress.split("@");
 
 const experiences = [
   {
@@ -271,6 +276,11 @@ const schema = {
     <div class="chromatic-rail" aria-hidden="true">
       <span></span><span></span><span></span><span></span>
     </div>
+    <div class="scroll-monitor" aria-hidden="true">
+      <span class="scroll-monitor-signal"></span>
+      <p><b data-scroll-index>00</b><span data-scroll-label>Identity</span></p>
+      <i><span data-scroll-meter></span></i>
+    </div>
 
     <header class="site-header" data-header>
       <a class="brand" href="#top" aria-label="Aditya Yadav, back to top">
@@ -283,9 +293,10 @@ const schema = {
         <a href="#work">Work</a>
         <a href="#systems">Systems</a>
         <a href="#about">About</a>
+        <a href="#contact">Contact</a>
       </nav>
 
-      <a class="header-cta" href="mailto:adityayadav8g@gmail.com">
+      <a class="header-cta" href="#contact" aria-label="Open channel: jump to contact options">
         <Mail size={17} stroke-width={1.8} aria-hidden="true" />
         <span>Open channel</span>
       </a>
@@ -314,14 +325,22 @@ const schema = {
         <a href="#work">Work <span>02</span></a>
         <a href="#systems">Systems <span>03</span></a>
         <a href="#about">About <span>04</span></a>
-        <a href={resumeUrl} target="_blank" rel="noreferrer">
+        <a href="#contact">Contact <span>05</span></a>
+        <a href={resumeUrl} data-mobile-resume>
           Resume <ArrowUpRight size={18} aria-hidden="true" />
         </a>
       </nav>
     </header>
 
     <main id="main-content">
-      <section class="hero dark-section" id="top" data-section="top">
+      <section
+        class="hero dark-section"
+        id="top"
+        data-section="top"
+        data-motion-section
+        data-motion-kind="hero"
+        data-scroll-label="Identity"
+      >
         <canvas id="data-flow" aria-hidden="true"></canvas>
         <div class="hero-grid grid-shell">
           <div class="hero-kicker" data-reveal>
@@ -367,6 +386,7 @@ const schema = {
           </div>
 
           <div class="hero-telemetry" aria-label="Selected engineering metrics">
+            <p><span></span>Live reliability</p>
             <div>
               <span>Throughput</span>
               <strong data-flow-throughput>10.4k/min</strong>
@@ -396,9 +416,15 @@ const schema = {
         </div>
       </section>
 
-      <section class="proof-band" id="impact" data-section="impact">
+      <section
+        class="proof-band"
+        id="impact"
+        data-section="impact"
+        data-scroll-label="Production evidence"
+        aria-labelledby="impact-label"
+      >
         <div class="grid-shell proof-grid">
-          <p class="proof-intro">Production evidence</p>
+          <p class="proof-intro" id="impact-label" data-menu-focus>Production evidence</p>
           <div class="proof-stat">
             <strong data-count="200" data-suffix="+">200+</strong>
             <span>tables migrated</span>
@@ -418,7 +444,13 @@ const schema = {
         </div>
       </section>
 
-      <section class="manifesto paper-section" data-section="impact">
+      <section
+        class="manifesto paper-section"
+        data-section="impact"
+        data-motion-section
+        data-motion-kind="manifesto"
+        data-scroll-label="Point of view"
+      >
         <div class="grid-shell manifesto-grid">
           <p class="chapter-label dark-label" data-reveal>01 / Point of view</p>
           <div class="manifesto-copy" data-reveal>
@@ -448,36 +480,59 @@ const schema = {
         </div>
       </section>
 
-      <section class="experience paper-section" data-section="impact">
-        <div class="grid-shell section-heading" data-reveal>
-          <p class="chapter-label dark-label">02 / Production trail</p>
-          <h2>Work measured in migrations, reliability, and people unblocked.</h2>
-        </div>
+      <section
+        class="experience paper-section"
+        data-section="impact"
+        data-motion-section
+        data-motion-kind="experience"
+        data-scroll-label="Production trail"
+      >
+        <div class="experience-shell grid-shell">
+          <div class="section-heading" data-reveal="heading">
+            <p class="chapter-label dark-label">02 / Production trail</p>
+            <h2>Work measured in migrations, reliability, and people unblocked.</h2>
+            <div class="experience-route" aria-hidden="true">
+              <span>Now</span><i></i><span>Migrate</span><i></i><span>Tune</span><i></i><span>Build</span>
+            </div>
+          </div>
 
-        <div class="experience-list grid-shell">
-          {
-            experiences.map((item, index) => (
-              <article class="experience-row" data-reveal>
-                <p class="row-index">{String(index + 1).padStart(2, "0")}</p>
-                <p class="row-period">{item.period}</p>
-                <div class="row-role">
-                  <h3>{item.role}</h3>
-                  <p>{item.client}</p>
-                  <small>{item.context}</small>
-                </div>
-                <div class="row-impact">
-                  <p>{item.impact}</p>
-                  <ul aria-label={`${item.client} impact metrics`}>
-                    {item.metrics.map((metric) => <li>{metric}</li>)}
-                  </ul>
-                </div>
-              </article>
-            ))
-          }
+          <div class="experience-list">
+            {
+              experiences.map((item, index) => (
+                <article
+                  class="experience-row"
+                  data-reveal
+                  data-experience-row
+                  data-row-index={String(index + 1).padStart(2, "0")}
+                >
+                  <p class="row-index">{String(index + 1).padStart(2, "0")}</p>
+                  <p class="row-period">{item.period}</p>
+                  <div class="row-role">
+                    <h3>{item.role}</h3>
+                    <p>{item.client}</p>
+                    <small>{item.context}</small>
+                  </div>
+                  <div class="row-impact">
+                    <p>{item.impact}</p>
+                    <ul aria-label={`${item.client} impact metrics`}>
+                      {item.metrics.map((metric) => <li>{metric}</li>)}
+                    </ul>
+                  </div>
+                </article>
+              ))
+            }
+          </div>
         </div>
       </section>
 
-      <section class="work-intro dark-section" id="work" data-section="work">
+      <section
+        class="work-intro dark-section"
+        id="work"
+        data-section="work"
+        data-motion-section
+        data-motion-kind="work-intro"
+        data-scroll-label="Selected systems"
+      >
         <div class="grid-shell section-heading light-heading" data-reveal>
           <p class="chapter-label">03 / Selected systems</p>
           <h2>Four builds. Four different ways to make data useful.</h2>
@@ -488,7 +543,12 @@ const schema = {
         </div>
       </section>
 
-      <div class="signal-ribbon" aria-hidden="true">
+      <div
+        class="signal-ribbon"
+        aria-hidden="true"
+        data-motion-section
+        data-motion-kind="signal-ribbon"
+      >
         <div class="signal-ribbon-track">
           <span>RAW SIGNAL</span><i></i><span>REPLAY</span><i></i><span>OBSERVE</span><i></i><span>QUALITY</span><i></i><span>TRUST</span><i></i>
           <span>RAW SIGNAL</span><i></i><span>REPLAY</span><i></i><span>OBSERVE</span><i></i><span>QUALITY</span><i></i><span>TRUST</span><i></i>
@@ -502,6 +562,8 @@ const schema = {
             id={project.id}
             data-section="work"
             data-motion-section
+            data-motion-kind="project"
+            data-scroll-label={project.title}
             data-project-index={project.number}
           >
             <div class="grid-shell project-grid">
@@ -640,6 +702,9 @@ const schema = {
         class="systems signal-section"
         id="systems"
         data-section="systems"
+        data-motion-section
+        data-motion-kind="systems"
+        data-scroll-label="System ownership"
         data-bloom-section
       >
         <div class="grid-shell systems-grid">
@@ -679,7 +744,13 @@ const schema = {
         </div>
       </section>
 
-      <section class="credentials dark-section" data-section="systems">
+      <section
+        class="credentials dark-section"
+        data-section="systems"
+        data-motion-section
+        data-motion-kind="credentials"
+        data-scroll-label="Verified signal"
+      >
         <div class="grid-shell credentials-grid">
           <div class="credentials-heading" data-reveal>
             <p class="chapter-label">05 / Verified signal</p>
@@ -716,7 +787,14 @@ const schema = {
         </div>
       </section>
 
-      <section class="about paper-section" id="about" data-section="about">
+      <section
+        class="about paper-section"
+        id="about"
+        data-section="about"
+        data-motion-section
+        data-motion-kind="about"
+        data-scroll-label="About"
+      >
         <div class="grid-shell about-grid">
           <p class="chapter-label dark-label" data-reveal>06 / About</p>
           <div class="about-copy" data-reveal>
@@ -751,8 +829,11 @@ const schema = {
       <section
         class="contact dark-section"
         id="contact"
-        data-section="about"
+        data-section="contact"
         data-motion-section
+        data-motion-kind="contact"
+        data-scroll-label="Open channel"
+        aria-labelledby="contact-title"
       >
         <div class="contact-signal" aria-hidden="true">
           <span></span><span></span><span></span><span></span><span></span>
@@ -763,20 +844,49 @@ const schema = {
             Open to Data Engineer roles / Gurgaon or remote
           </div>
           <p class="chapter-label" data-reveal>07 / Open channel</p>
-          <h2 data-reveal>Let's move data forward.</h2>
-          <a class="contact-email" href="mailto:adityayadav8g@gmail.com" data-reveal>
-            <span>adityayadav8g@gmail.com</span>
-            <ArrowUpRight aria-hidden="true" />
-          </a>
+          <h2 id="contact-title" data-reveal>Let's move data forward.</h2>
+          <div class="contact-email-wrap" data-reveal>
+            <a
+              class="contact-email"
+              href={gmailComposeUrl}
+              aria-label={`Compose in Gmail to ${emailAddress}`}
+            >
+              <span class="contact-email-main">
+                <small>Compose in Gmail</small>
+                <strong>{emailUser}<wbr />@{emailDomain}</strong>
+              </span>
+              <span class="contact-email-action">
+                <span>Start conversation</span><ArrowUpRight aria-hidden="true" />
+              </span>
+            </a>
+            <button
+              class="copy-email"
+              type="button"
+              data-copy-email
+              data-email={emailAddress}
+              aria-label={`Copy ${emailAddress}`}
+            >
+              <Copy class="copy-email-icon" size={20} aria-hidden="true" />
+              <Check class="copy-email-check" size={20} aria-hidden="true" />
+              <span data-copy-label>Copy email</span>
+            </button>
+            <p class="sr-only" aria-live="polite" data-copy-status></p>
+          </div>
           <div class="contact-links" data-reveal>
-            <a href="https://github.com/adityayadav97" target="_blank" rel="noreferrer">
-              <CodeXml size={19} aria-hidden="true" /> GitHub
+            <a class="contact-link contact-link-github" href="https://github.com/adityayadav97">
+              <span class="contact-link-icon"><CodeXml size={27} aria-hidden="true" /></span>
+              <span><strong>GitHub</strong><small>Systems, code, and experiments</small></span>
+              <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />
             </a>
-            <a href="https://www.linkedin.com/in/theadityayadav/" target="_blank" rel="noreferrer">
-              <ContactRound size={19} aria-hidden="true" /> LinkedIn
+            <a class="contact-link contact-link-linkedin" href="https://www.linkedin.com/in/theadityayadav/">
+              <span class="contact-link-icon"><ContactRound size={27} aria-hidden="true" /></span>
+              <span><strong>LinkedIn</strong><small>Experience and conversations</small></span>
+              <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />
             </a>
-            <a href={resumeUrl} target="_blank" rel="noreferrer">
-              <FileText size={19} aria-hidden="true" /> Resume
+            <a class="contact-link contact-link-resume" href={resumeUrl}>
+              <span class="contact-link-icon"><FileText size={27} aria-hidden="true" /></span>
+              <span><strong>Resume</strong><small>Impact, projects, and credentials</small></span>
+              <ArrowUpRight class="contact-link-arrow" size={22} aria-hidden="true" />
             </a>
           </div>
         </div>
